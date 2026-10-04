@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% macro fr(v) %}{{ v|round|int if v >= 1 else '1/' ~ (1 / v)|round|int }}{% endmacro %}
 {% block content %}
+<style>
+@media (min-width:1200px){.side-panel{position:sticky;top:80px;max-height:calc(100vh - 96px);overflow-y:auto}}
+</style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
  <h1 class="mb-0">Matriks Perbandingan: {{ POSITIONS[pos] }}</h1>
  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('ahp_view', pos=pos) }}">Kembali ke Perhitungan AHP</a>
@@ -38,7 +41,8 @@
   {% endif %}
  </div>
  <div class="col-xl-3">
-  <div class="card mb-3 sticky-xl-top" style="top:80px"><div class="card-body">
+  <div class="side-panel">
+  <div class="card mb-3"><div class="card-body">
    <h2 class="h5">Hasil langsung</h2>
    <table class="table table-sm small mb-2" id="live"></table>
    <div class="font-monospace small" id="cons"></div>
@@ -51,6 +55,7 @@
     <tr><td class="num">9</td><td>Mutlak lebih penting</td></tr><tr><td class="num">2,4,6,8</td><td>Nilai di antaranya</td></tr>
     <tr><td class="num">1/x</td><td>Kebalikan: kriteria kolom lebih penting</td></tr></table>
   </div></div>
+  </div>
  </div>
 </div>
 {% endblock %}
