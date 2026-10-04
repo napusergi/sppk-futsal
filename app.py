@@ -1,4 +1,4 @@
-"""SPPK Posisi Futsal — Flask + SQLite (AHP + TOPSIS)."""
+"""SPK Hibrida AHP–TOPSIS untuk Penentuan Posisi dan Rekomendasi Latihan Pemain Futsal — Flask + SQLite."""
 import csv
 import io
 import json

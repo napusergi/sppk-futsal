@@ -1,4 +1,4 @@
-# SPPK Posisi Futsal (AHP + TOPSIS)
+# SPK Hibrida AHP–TOPSIS untuk Penentuan Posisi dan Rekomendasi Latihan Pemain Futsal
 
 Sistem Pendukung Pengambilan Keputusan berbasis web untuk menentukan posisi terbaik pemain futsal
 dan memberi rekomendasi training menuju posisi yang diinginkan.

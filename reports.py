@@ -96,7 +96,7 @@ def _doc(title):
         c.saveState()
         c.setFont(FONT, 7)
         c.setFillColor(colors.grey)
-        c.drawString(1.2 * cm, 0.6 * cm, f"SPPK Posisi Futsal · {title} · dicetak {datetime.now():%d-%m-%Y %H:%M}")
+        c.drawString(1.2 * cm, 0.6 * cm, f"SPK Hibrida AHP–TOPSIS Futsal · {title} · dicetak {datetime.now():%d-%m-%Y %H:%M}")
         c.drawRightString(landscape(A4)[0] - 1.2 * cm, 0.6 * cm, f"Halaman {d.page}")
         c.restoreState()
     return buf, doc, footer
