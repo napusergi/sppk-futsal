@@ -9,7 +9,7 @@
  </div>
 </div>
 <div class="card"><div class="card-body table-responsive">
-<table class="table table-sm">
+<table class="table table-sm dt" id="tbl-log" data-per-page="25">
  <thead><tr><th>Waktu (UTC)</th><th>User</th><th>Role</th><th>Kategori</th><th>Aktivitas</th></tr></thead>
  {% for l in rows %}<tr><td class="small font-monospace">{{ l.created_at }}</td><td>{{ l.username }}</td><td>{{ l.role }}</td><td><span class="badge bg-secondary">{{ l.category }}</span></td><td style="white-space:normal">{{ l.action }}</td></tr>{% endfor %}
 </table></div></div>

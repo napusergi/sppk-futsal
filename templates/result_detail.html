@@ -5,7 +5,7 @@
 <div class="row g-3">
  <div class="col-lg-5"><div class="card"><div class="card-body">
   <div class="text-muted small text-uppercase">Posisi paling sesuai</div><div class="big mb-2">{{ res.best.name }}</div>
-  <table class="table table-sm">{% for x in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ x.name }}</td><td class="num">{{ x.ci|f }}</td></tr>{% endfor %}</table>
+  <table class="table table-sm dt" id="tbl-ranking" data-per-page="5"><thead><tr><th>#</th><th>Posisi</th><th class="num">Cᵢ</th></tr></thead>{% for x in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ x.name }}</td><td class="num">{{ x.ci|f }}</td></tr>{% endfor %}</table>
   <p class="mb-0">Target: <b>{{ res.target_name }}</b> · kesiapan {{ (res.target_readiness*100)|round(1) }}%</p>
  </div></div></div>
  <div class="col-lg-7"><div class="card"><div class="card-body">

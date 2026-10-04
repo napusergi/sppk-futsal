@@ -15,7 +15,7 @@
 <p class="note">Satu perhitungan TOPSIS untuk setiap pemain. <b>Alternatif = 4 posisi</b>, <b>matriks keputusan = bobot AHP tiap posisi</b> (seberapa besar posisi menuntut tiap skill), <b>bobot kriteria = profil skill pemain</b> (sⱼ / Σs). Semua kriteria benefit. Posisi dengan Cᵢ tertinggi menjadi rekomendasi: posisi yang paling banyak menuntut kekuatan pemain tersebut.</p>
 <div class="card mb-3"><div class="card-body">
  <h2 class="h4">Ringkasan: Cᵢ setiap posisi untuk setiap pemain</h2>
- <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+ <div class="table-responsive"><table class="table table-sm table-hover align-middle dt" id="tbl-ringkasan">
   <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th></tr></thead>
   {% for pl in players %}{% set cis = summary[pl.id] %}{% set b = cis.index(cis|max) %}<tr {{ 'class=table-active' if loop.index0 == ep }}>
    <td><a href="{{ url_for('topsis_view', view='pemain', p=loop.index0) }}">{{ pl.code }}</a> <span class="small text-muted">{{ pl.name }}</span></td>
@@ -57,7 +57,7 @@
 {% endcall %}
 <div class="card mb-3"><div class="card-body">
  <h2 class="h4">Hasil ranking: {{ POSITIONS[pos] }}</h2>
- <div class="table-responsive"><table class="table table-sm align-middle">
+ <div class="table-responsive"><table class="table table-sm align-middle dt" id="tbl-rank-posisi">
   <thead><tr><th>Rank</th><th>Pemain</th><th>Posisi terdaftar</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th></th></tr></thead>
   {% for i in order %}<tr><td>{{ loop.index }}</td><td><a href="{{ url_for('player_detail', pid=players[i].id, target=pos) }}">{{ players[i].code }}</a> <span class="small text-muted">{{ players[i].name }}</span></td>
    <td class="small">{{ POSITIONS[players[i].position] }}</td><td class="num">{{ res[i].d_plus|f(4) }}</td><td class="num">{{ res[i].d_minus|f(4) }}</td><td class="num"><b>{{ res[i].ci|f(4) }}</b></td><td><div class="bar"><i style="width:{{ res[i].ci*100 }}%"></i></div></td></tr>{% endfor %}
@@ -73,7 +73,7 @@
   <tr class="table-danger"><th>A⁻</th>{% for x in a_neg %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr>
  {% endcall %}
  <h2 class="h5 mt-3">4. Jarak solusi ideal &amp; 5. Nilai preferensi</h2>
- <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small" style="max-width:620px">
+ <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small dt" id="tbl-jarak" style="max-width:620px">
   <thead><tr><th>Pemain</th><th class="num">D⁺ = √Σ(v − A⁺)²</th><th class="num">D⁻ = √Σ(v − A⁻)²</th><th class="num">Cᵢ</th><th class="num">Rank</th></tr></thead>
   {% for r in res %}<tr><th>{{ players[loop.index0].code }}</th><td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f(4) }}</td><td class="num">{{ st.rank[loop.index0] }}</td></tr>{% endfor %}
  </table></div>

@@ -41,7 +41,7 @@
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Bobot {{ POSITIONS[pos] }}</h2>
   {% set mx = a.weights|max %}
-  <table class="table table-sm align-middle"><thead><tr><th>Kriteria</th><th class="num" title="Skor kebutuhan (dipakai untuk target gap{{ '' if a.manual else ' dan matriks otomatis' }})">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
+  <table class="table table-sm align-middle dt" id="tbl-bobot" data-per-page="25"><thead><tr><th>Kriteria</th><th class="num" title="Skor kebutuhan (dipakai untuk target gap{{ '' if a.manual else ' dan matriks otomatis' }})">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
    {% for c in criteria %}<tr><td>{{ c.name }}</td><td class="num">{{ scores[loop.index0] }}</td><td class="small">{{ category(scores[loop.index0]) }}</td><td class="num">{{ a.weights[loop.index0]|f(4) }}</td><td><div class="bar"><i style="width:{{ a.weights[loop.index0]/mx*100 }}%"></i></div></td></tr>{% endfor %}
   </table>
   <p class="font-monospace small mb-1">λmax = {{ a.lambda_max|f(4) }} · CI = {{ a.ci|f(4) }} · RI = {{ a.ri }} · CR = {{ a.cr|f(4) }}</p>

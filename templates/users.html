@@ -5,7 +5,7 @@
 <div class="card mb-4" style="border-left:4px solid var(--ball)"><div class="card-body">
  <h2 class="h4">Menunggu approval {% if pending %}<span class="badge bg-warning text-dark">{{ pending|length }}</span>{% endif %}</h2>
  {% if pending %}
- <div class="table-responsive"><table class="table table-sm align-middle">
+ <div class="table-responsive"><table class="table table-sm align-middle dt" id="tbl-pending">
   <thead><tr><th>Didaftarkan</th><th>Username</th><th>Nama</th><th>Daftar sebagai</th><th>Keterangan</th><th>Setujui sebagai</th><th></th></tr></thead>
   {% for u in pending %}<tr>
    <td class="small">{{ u.created_at }}</td><td><b>{{ u.username }}</b></td><td>{{ u.full_name }}</td><td>{{ ROLE_LABEL[u.requested_role] }}</td>
@@ -25,7 +25,7 @@
 <div class="row g-3">
  <div class="col-lg-8"><div class="card"><div class="card-body table-responsive">
   <h2 class="h4">Daftar akun</h2>
-  <table class="table table-sm align-middle">
+  <table class="table table-sm align-middle dt" id="tbl-akun">
    <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Pemain</th><th>Status</th><th>Ubah password</th></tr></thead>
    {% for u in rows %}<tr>
     <td>{{ u.username }}</td><td>{{ u.full_name }}</td>

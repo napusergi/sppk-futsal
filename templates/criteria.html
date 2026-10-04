@@ -3,7 +3,7 @@
 <h1>Kriteria &amp; Skor Kebutuhan Posisi</h1>
 <p class="note">Skor kebutuhan 1–9 per posisi (High = 9, Medium = 5, Low = 1; nilai antara 2–8 boleh dipakai). Matriks perbandingan berpasangan AHP dibentuk otomatis dari skor ini.</p>
 <div class="card mb-4"><div class="card-body table-responsive">
-<table class="table table-sm align-middle">
+<table class="table table-sm align-middle dt" id="tbl-kriteria" data-per-page="25">
  <thead><tr><th>Kriteria</th><th>Rekomendasi training</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th></th></tr></thead>
  {% for c in criteria %}{% set i = loop.index0 %}<tr>
   <td><form id="f{{ c.id }}" method="post"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{ c.id }}"></form>

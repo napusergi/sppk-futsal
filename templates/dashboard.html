@@ -13,7 +13,7 @@
    <div><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('export_topsis', fmt='csv') }}">CSV</a>
    <a class="btn btn-sm btn-court" href="{{ url_for('export_topsis', fmt='xlsx') }}">Excel</a></div>
   </div>
-  <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+  <div class="table-responsive"><table class="table table-sm table-hover align-middle dt" id="tbl-kecocokan">
    <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th></tr></thead>
    <tbody>{% for r in rows %}<tr>
     <td><a href="{{ url_for('player_detail', pid=r.id) }}">{{ r.code }}</a> <span class="text-muted small">{{ r.name }}</span></td>
@@ -27,7 +27,7 @@
  <div class="col-lg-4">
   <div class="card mb-3"><div class="card-body">
    <h2 class="h4">Konsistensi AHP</h2>
-   <table class="table table-sm mb-0">{% for cr in ahp_cr %}<tr><td>{{ POSITIONS[loop.index0] }}</td><td class="num">CR {{ cr|f(4) }}</td>
+   <table class="table table-sm mb-0 dt" id="tbl-cr" data-per-page="5"><thead><tr><th>Posisi</th><th class="num">CR</th><th>Status</th></tr></thead>{% for cr in ahp_cr %}<tr><td>{{ POSITIONS[loop.index0] }}</td><td class="num">CR {{ cr|f(4) }}</td>
     <td>{% if cr < 0.1 %}<span class="badge bg-success">konsisten</span>{% else %}<span class="badge bg-danger">tidak</span>{% endif %}</td></tr>{% endfor %}</table>
   </div></div>
   <div class="card"><div class="card-body">

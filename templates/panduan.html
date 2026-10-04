@@ -15,7 +15,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
 <div class="row g-4">
  <div class="col-lg-3 d-none d-lg-block"><div class="card sticky-top" style="top:16px"><div class="card-body toc">
   <div class="text-muted small text-uppercase mb-1">Isi</div>
-  <a href="#alur">Alur kerja &amp; metode</a><a href="#metodologi">Kerangka metodologi</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
+  <a href="#alur">Alur kerja &amp; metode</a><a href="#tabel">Menggunakan tabel data</a><a href="#metodologi">Kerangka metodologi</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
   {% if coach %}<a href="#index">Dashboard</a><a href="#players">Data Pemain</a><a href="#player_form">Tambah / Ubah Pemain</a>{% endif %}
   {% if user %}<a href="#player_detail">Analisis Pemain</a>{% endif %}
   {% if coach %}<a href="#criteria_view">Kriteria</a>{% endif %}
@@ -74,6 +74,18 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
   <li><b>Rekomendasi training:</b> pemetaan berbasis aturan dari kriteria ke jenis latihan.</li>
  </ul>
  <p class="note">Rumusan yang disarankan untuk laporan: "Sistem pendukung keputusan penentuan posisi pemain futsal menggunakan model hibrida AHP–TOPSIS, dengan AHP untuk pembobotan kriteria per posisi berdasarkan penilaian pelatih, TOPSIS untuk pemeringkatan kecocokan, dan analisis gap berbobot untuk rekomendasi latihan."</p>
+</section>
+
+<section id="tabel">
+ <h2>Menggunakan tabel data</h2>
+ <p>Semua tabel data (daftar pemain, ranking, hasil, log, akun, kriteria, bobot, dan gap) memiliki fitur yang sama:</p>
+ <ul>
+  <li><b>Mengurutkan:</b> klik judul kolom (tanda ⇅). Klik sekali untuk urutan naik (▲), klik lagi untuk urutan turun (▼). Angka diurutkan sebagai angka, teks sesuai abjad.</li>
+  <li><b>Mencari:</b> ketik di kotak <i>Cari di semua kolom…</i>. Baris yang mengandung kata itu di kolom mana pun akan ditampilkan.</li>
+  <li><b>Jumlah baris:</b> pilih 5, 10, 25, 50, 100, atau Semua di <i>Tampilkan … baris</i>.</li>
+  <li><b>Pindah halaman:</b> gunakan tombol « ‹ nomor › », atau ketik nomor di <i>Ke halaman</i>.</li>
+ </ul>
+ <p class="note">Pilihan jumlah baris dan urutan kolom diingat browser untuk tabel yang sama. Tabel matriks perhitungan (AHP dan langkah TOPSIS) tidak bisa diurutkan karena urutan baris dan kolomnya adalah bagian dari rumus.</p>
 </section>
 
 <section id="home">

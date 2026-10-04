@@ -2,7 +2,7 @@
 {% block content %}
 <h1>Riwayat Hasil Perhitungan</h1>
 <div class="card"><div class="card-body table-responsive">
-<table class="table table-sm table-hover">
+<table class="table table-sm table-hover dt" id="tbl-hasil">
  <thead><tr><th>Waktu</th><th>Pemain</th><th>Posisi terbaik</th><th class="num">Cᵢ</th><th>Target</th><th>Disimpan oleh</th><th></th></tr></thead>
  {% for r in rows %}<tr><td>{{ r.created_at }}</td><td>{{ r.code }} · {{ r.name }}</td><td>{{ POSITIONS[r.best_position] }}</td><td class="num">{{ r.best_ci|f }}</td>
   <td>{{ POSITIONS[r.target_position] }}</td><td>{{ r.created_by }}</td><td><a href="{{ url_for('result_detail', rid=r.id) }}">detail</a></td></tr>

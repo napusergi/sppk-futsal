@@ -17,7 +17,7 @@
   <div class="text-muted small text-uppercase">Posisi paling sesuai</div>
   <div class="big mb-1">{{ res.best.name }}</div>
   <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b></p>
-  <table class="table table-sm align-middle">
+  <table class="table table-sm align-middle dt" id="tbl-ranking" data-per-page="5">
    <thead><tr><th>#</th><th>Posisi</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th></th></tr></thead>
    {% for r in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ r.name }}{% if loop.first %} <span class="badge bg-success">terbaik</span>{% endif %}</td>
     <td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f }}</td><td><div class="bar"><i style="width:{{ r.ci*100 }}%"></i></div></td></tr>{% endfor %}
@@ -48,7 +48,7 @@
   <h2 class="h4">Gap skill &amp; prioritas upgrade</h2>
   <p class="note">Target = skor kebutuhan posisi (1–9) dikonversi ke skala 1–10. Skor prioritas = gap × bobot AHP posisi {{ res.target_name }}.</p>
   {% set mx = (res.gaps|map(attribute='priority')|max) or 1 %}
-  <div class="table-responsive"><table class="table table-sm align-middle">
+  <div class="table-responsive"><table class="table table-sm align-middle dt" id="tbl-gap" data-per-page="25">
    <thead><tr><th>#</th><th>Kriteria</th><th class="num">Skill</th><th class="num">Target</th><th class="num">Gap</th><th class="num">Bobot</th><th class="num">Prioritas</th><th>Status</th><th></th></tr></thead>
    {% for g in res.gaps %}<tr><td>{{ loop.index }}</td><td>{{ g.criterion }}</td><td class="num">{{ g.skill }}</td><td class="num">{{ g.target }}</td><td class="num">{{ g.gap }}</td>
     <td class="num">{{ g.weight|f(4) }}</td><td class="num">{{ g.priority|f(4) }}</td>
@@ -65,7 +65,7 @@
  </div></div></div>
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Riwayat hasil tersimpan</h2>
-  {% if history %}<table class="table table-sm mb-0">{% for h in history %}<tr><td class="small">{{ h.created_at }}</td><td>{{ POSITIONS[h.best_position] }}</td><td class="small text-muted">target {{ POSITIONS[h.target_position] }}</td><td><a href="{{ url_for('result_detail', rid=h.id) }}">detail</a></td></tr>{% endfor %}</table>
+  {% if history %}<table class="table table-sm mb-0 dt" id="tbl-riwayat" data-per-page="5"><thead><tr><th>Waktu</th><th>Posisi terbaik</th><th>Target</th><th></th></tr></thead>{% for h in history %}<tr><td class="small">{{ h.created_at }}</td><td>{{ POSITIONS[h.best_position] }}</td><td class="small text-muted">{{ POSITIONS[h.target_position] }}</td><td><a href="{{ url_for('result_detail', rid=h.id) }}">detail</a></td></tr>{% endfor %}</table>
   {% else %}<p class="text-muted mb-0">Belum ada hasil yang disimpan pelatih.</p>{% endif %}
  </div></div></div>
 </div>
