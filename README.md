@@ -27,9 +27,13 @@ Password disimpan sebagai hash; Super Admin dapat menetapkan password baru (dita
 
 ## Metode
 
+Model: **hibrida AHP–TOPSIS dengan analisis gap berbobot**. Penjelasan bagian standar, penyesuaian, dan tambahan
+ada di halaman Panduan → *Kerangka metodologi*.
+
 1. **Hierarki AHP** — Tujuan: posisi terbaik → Kriteria: 11 skill (bisa CRUD) → Alternatif: Goalkeeper, Fixo/Anchor, Ala/Flank, Pivot.
 2. **Bobot AHP** — pelatih mengisi skor kebutuhan 1–9 per kriteria per posisi (High = 9, Medium = 5, Low = 1).
-   Matriks perbandingan berpasangan dibuat otomatis: `d = sᵢ − sⱼ`, `aᵢⱼ = d + 1` (d ≥ 0) atau `1/(1 − d)` (d < 0), dibatasi 1–9.
+   Matriks perbandingan per posisi bisa **diisi manual oleh pelatih** (skala Saaty, AHP klasik; menu Perhitungan AHP →
+   *Isi matriks manual*, dengan bobot & CR langsung) atau **otomatis**: `d = sᵢ − sⱼ`, `aᵢⱼ = d + 1` (d ≥ 0) atau `1/(1 − d)` (d < 0), dibatasi 1–9.
    Bobot = rata-rata baris matriks ternormalisasi; dihitung λmax, CI = (λmax − n)/(n − 1), CR = CI/RI (valid jika CR < 0,1).
 3. **TOPSIS** — per posisi: alternatif = pemain aktif, kriteria benefit, bobot dari AHP posisi tersebut.
    Normalisasi vektor → matriks terbobot → A⁺/A⁻ → D⁺/D⁻ → Cᵢ = D⁻/(D⁺ + D⁻).

@@ -28,10 +28,38 @@ def pairwise_matrix(scores):
     return m
 
 
-def ahp(scores):
-    """Hitung bobot (rata-rata baris matriks ternormalisasi), lambda max, CI, CR."""
+SAATY = [9, 8, 7, 6, 5, 4, 3, 2, 1, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 6, 1 / 7, 1 / 8, 1 / 9]
+SAATY_LABEL = {1: "sama penting", 3: "sedikit lebih penting", 5: "lebih penting", 7: "sangat lebih penting", 9: "mutlak lebih penting"}
+
+
+class Profiles(dict):
+    """Skor kebutuhan per posisi {pos: [skor]} + matriks perbandingan manual dari pelatih {pos: matriks}."""
+
+    def __init__(self, *a, matrices=None, **k):
+        super().__init__(*a, **k)
+        self.matrices = matrices or {}
+
+
+def ahp_pos(profiles, p):
+    """AHP untuk posisi p: pakai matriks manual pelatih bila ada, jika tidak matriks otomatis dari skor."""
+    return ahp(profiles[p], getattr(profiles, "matrices", {}).get(p))
+
+
+def parse_saaty(text):
+    """'3' -> 3.0, '1/3' -> 0.333; dibatasi ke skala Saaty 1/9..9."""
+    text = str(text).strip()
+    v = 1 / float(text.split("/")[1]) if "/" in text else float(text)
+    return min(9.0, max(1 / 9, v))
+
+
+def ahp(scores, matrix=None):
+    """Hitung bobot (rata-rata baris matriks ternormalisasi), lambda max, CI, CR.
+
+    matrix=None -> matriks otomatis dari skor kebutuhan; selain itu matriks penilaian pelatih (manual).
+    """
     n = len(scores)
-    m = pairwise_matrix(scores)
+    manual = matrix is not None
+    m = matrix if manual else pairwise_matrix(scores)
     col_sum = [sum(m[i][j] for i in range(n)) for j in range(n)]
     norm = [[m[i][j] / col_sum[j] for j in range(n)] for i in range(n)]
     w = [sum(r) / n for r in norm]
@@ -41,7 +69,7 @@ def ahp(scores):
     ci = (lam - n) / (n - 1) if n > 1 else 0
     ri = RI.get(n, 1.59)
     cr = ci / ri if ri else 0
-    return {"matrix": m, "col_sum": col_sum, "normalized": norm, "weights": w, "aw": aw, "ratio": ratio, "n": n,
+    return {"manual": manual, "matrix": m, "col_sum": col_sum, "normalized": norm, "weights": w, "aw": aw, "ratio": ratio, "n": n,
             "lambda_max": lam, "ci": ci, "ri": ri, "cr": cr, "consistent": cr < 0.1}
 
 
@@ -82,7 +110,9 @@ def _n(v, d=4):
 
 
 def _frac(v):
-    return str(int(round(v))) if v >= 1 else f"1/{int(round(1 / v))}"
+    if v >= 1:
+        return str(int(round(v))) if abs(v - round(v)) < 1e-6 else f"{v:.3f}"
+    return f"1/{int(round(1 / v))}" if abs(1 / v - round(1 / v)) < 1e-6 else f"{v:.3f}"
 
 
 def ahp_example(names, scores, a, i=0, j=1):
@@ -94,10 +124,17 @@ def ahp_example(names, scores, a, i=0, j=1):
     col = [m[k][i] for k in range(n)]
     row = a["normalized"][i]
     rule = f"d = {d} ≥ 0 → a = d + 1" if d >= 0 else f"d = {d} < 0 → a = 1/(1 − d)"
+    if a.get("manual"):
+        lbl = SAATY_LABEL.get(round(aij)) if aij >= 1 else None
+        step1 = ("1. Elemen matriks perbandingan (penilaian pelatih)",
+                 "aᵢⱼ = penilaian pakar pada skala Saaty 1–9 ;  aⱼᵢ = 1/aᵢⱼ ;  aᵢᵢ = 1",
+                 f"Pelatih menilai {ci_} vs {cj} = {_frac(aij)}{' (' + lbl + ')' if lbl else ''};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
+    else:
+        step1 = ("1. Elemen matriks perbandingan (otomatis)",
+                 "d = sᵢ − sⱼ ;  aᵢⱼ = d + 1 jika d ≥ 0,  aᵢⱼ = 1/(1 − d) jika d < 0  (maks. 9) ;  aⱼᵢ = 1/aᵢⱼ",
+                 f"{ci_} vs {cj}: d = {scores[i]} − {scores[j]} = {d};  {rule} = {_frac(aij)};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
     return [
-        ("1. Elemen matriks perbandingan",
-         "d = sᵢ − sⱼ ;  aᵢⱼ = d + 1 jika d ≥ 0,  aᵢⱼ = 1/(1 − d) jika d < 0  (maks. 9) ;  aⱼᵢ = 1/aᵢⱼ",
-         f"{ci_} vs {cj}: d = {scores[i]} − {scores[j]} = {d};  {rule} = {_frac(aij)};  maka a({cj},{ci_}) = {_frac(m[j][i])}"),
+        step1,
         ("2. Jumlah kolom",
          "Σⱼ = Σᵢ aᵢⱼ",
          f"Kolom {ci_}: " + " + ".join(_frac(x) for x in col) + f" = {_n(a['col_sum'][i], 3)}"),
@@ -169,7 +206,7 @@ def analyze(criteria, profiles, players, player_id, target_pos):
     profiles : {pos_index: [skor per kriteria]}
     players  : list dict {id, code, skills: [nilai per kriteria]} (pemain aktif)
     """
-    ahps = {p: ahp(profiles[p]) for p in range(len(POSITIONS))}
+    ahps = {p: ahp_pos(profiles, p) for p in range(len(POSITIONS))}
     idx = next(i for i, pl in enumerate(players) if pl["id"] == player_id)
     mat = [pl["skills"] for pl in players]
     ranking = []
@@ -198,6 +235,6 @@ def topsis_all(profiles, players):
     mat = [pl["skills"] for pl in players]
     res = {pl["id"]: [] for pl in players}
     for p in range(len(POSITIONS)):
-        for pl, r in zip(players, topsis(mat, ahp(profiles[p])["weights"])):
+        for pl, r in zip(players, topsis(mat, ahp_pos(profiles, p)["weights"])):
             res[pl["id"]].append(r["ci"])
     return res

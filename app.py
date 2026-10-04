@@ -99,11 +99,22 @@ def can_view_player(pid):
 def load_model(include_archived=False):
     db = get_db()
     criteria = [dict(r) for r in db.execute("SELECT * FROM criteria ORDER BY sort_order, id")]
-    profiles = {p: [] for p in range(len(POSITIONS))}
+    profiles = sppk.Profiles({p: [] for p in range(len(POSITIONS))})
     prof = {(r["criterion_id"], r["position"]): r["score"] for r in db.execute("SELECT * FROM position_profile")}
     for c in criteria:
         for p in profiles:
             profiles[p].append(prof.get((c["id"], p), 5))
+    # matriks manual pelatih; pasangan yang belum dinilai (mis. kriteria baru) memakai nilai otomatis
+    pw = {(r["position"], r["ci"], r["cj"]): r["value"] for r in db.execute("SELECT * FROM pairwise")}
+    for r in db.execute("SELECT * FROM ahp_mode WHERE mode='manual'"):
+        p = r["position"]
+        m = sppk.pairwise_matrix(profiles[p])
+        for i, a in enumerate(criteria):
+            for j, b in enumerate(criteria):
+                if i < j and (p, a["id"], b["id"]) in pw:
+                    m[i][j] = pw[(p, a["id"], b["id"])]
+                    m[j][i] = 1 / m[i][j]
+        profiles.matrices[p] = m
     q = "SELECT * FROM players" + ("" if include_archived else " WHERE archived=0") + " ORDER BY code"
     players = [dict(r) for r in db.execute(q)]
     sk = {(r["player_id"], r["criterion_id"]): r["value"] for r in db.execute("SELECT * FROM skills")}
@@ -191,7 +202,7 @@ def index():
     criteria, profiles, players = load_model()
     per_pos = [sum(1 for p in players if p["position"] == i) for i in range(len(POSITIONS))]
     multi = sum(1 for p in players if p["alt_list"])
-    ahps = [sppk.ahp(profiles[p]) for p in range(len(POSITIONS))]
+    ahps = [sppk.ahp_pos(profiles, p) for p in range(len(POSITIONS))]
     top = []
     for a in ahps:
         order = sorted(range(len(criteria)), key=lambda i: a["weights"][i], reverse=True)[:3]
@@ -213,7 +224,7 @@ def dashboard():
     db = get_db()
     stats = {"players": len(players), "archived": db.execute("SELECT COUNT(*) FROM players WHERE archived=1").fetchone()[0],
              "criteria": len(criteria), "results": db.execute("SELECT COUNT(*) FROM results").fetchone()[0]}
-    ahp_cr = [sppk.ahp(profiles[p])["cr"] for p in range(len(POSITIONS))]
+    ahp_cr = [sppk.ahp_pos(profiles, p)["cr"] for p in range(len(POSITIONS))]
     logs = db.execute("SELECT * FROM logs ORDER BY id DESC LIMIT 8").fetchall()
     return render_template("dashboard.html", rows=rows, stats=stats, ahp_cr=ahp_cr, logs=logs)
 
@@ -398,7 +409,7 @@ def export_topsis(fmt):
         rows.append([pl["code"], pl["name"], POSITIONS[pl["position"]]] + [round(c, 4) for c in cis] + [POSITIONS[cis.index(max(cis))]])
     sheets = {"Ranking TOPSIS": rows}
     for p, pos in enumerate(POSITIONS):
-        a = sppk.ahp(profiles[p])
+        a = sppk.ahp_pos(profiles, p)
         sheets[f"AHP {pos.split('/')[0]}"] = [["Kriteria", "Skor kebutuhan", "Kategori", "Bobot"]] + \
             [[c["name"], profiles[p][i], sppk.category(profiles[p][i]), round(a["weights"][i], 4)] for i, c in enumerate(criteria)] + \
             [[], ["Lambda max", round(a["lambda_max"], 4)], ["CI", round(a["ci"], 4)], ["RI", a["ri"]], ["CR", round(a["cr"], 4)]]
@@ -457,12 +468,56 @@ def criteria_view():
 def ahp_view():
     pos = int(request.args.get("pos", 0))
     criteria, profiles, _ = load_model()
-    a = sppk.ahp(profiles[pos])
+    a = sppk.ahp_pos(profiles, pos)
     n = len(criteria)
     ei, ej = min(int(request.args.get("ci", 0)), n - 1), min(int(request.args.get("cj", 1)), n - 1)
     example = sppk.ahp_example([c["name"] for c in criteria], profiles[pos], a, ei, ej)
     return render_template("ahp.html", pos=pos, criteria=criteria, scores=profiles[pos], a=a, example=example, ei=ei, ej=ej,
-                           summary=[sppk.ahp(profiles[p]) for p in range(len(POSITIONS))])
+                           summary=[sppk.ahp_pos(profiles, p) for p in range(len(POSITIONS))], mode_info=ahp_mode_info(pos))
+
+
+def ahp_mode_info(pos):
+    r = get_db().execute("SELECT * FROM ahp_mode WHERE position=?", (pos,)).fetchone()
+    return dict(r) if r else {"mode": "auto", "updated_by": None, "updated_at": None}
+
+
+@app.route("/ahp/<int:pos>/matriks", methods=["GET", "POST"])
+@coach_required
+def ahp_matrix(pos):
+    if not 0 <= pos < len(POSITIONS):
+        abort(404)
+    criteria, profiles, _ = load_model()
+    db = get_db()
+    if request.method == "POST":
+        user = current_user()["username"]
+        if request.form["action"] == "reset":
+            db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
+            db.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'auto', ?, CURRENT_TIMESTAMP)", (pos, user))
+            db.commit()
+            log("input", f"Matriks AHP {POSITIONS[pos]} dikembalikan ke mode otomatis")
+            flash(f"Matriks {POSITIONS[pos]} kembali dihitung otomatis dari skor kebutuhan.", "success")
+            return redirect(url_for("ahp_view", pos=pos))
+        n = len(criteria)
+        m = [[1.0] * n for _ in range(n)]
+        db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
+        for i in range(n):
+            for j in range(i + 1, n):
+                v = sppk.parse_saaty(request.form.get(f"a_{i}_{j}", "1"))
+                m[i][j], m[j][i] = v, 1 / v
+                db.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (pos, criteria[i]["id"], criteria[j]["id"], v))
+        db.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'manual', ?, CURRENT_TIMESTAMP)", (pos, user))
+        db.commit()
+        a = sppk.ahp(profiles[pos], m)
+        log("input", f"Isi matriks perbandingan AHP manual {POSITIONS[pos]} (CR={a['cr']:.4f})")
+        if a["consistent"]:
+            flash(f"Matriks {POSITIONS[pos]} disimpan. CR = {a['cr']:.4f} (konsisten).", "success")
+        else:
+            flash(f"Matriks {POSITIONS[pos]} disimpan, tetapi CR = {a['cr']:.4f} ≥ 0,1 (tidak konsisten). "
+                  "Tinjau kembali perbandingan yang saling bertentangan.", "warning")
+        return redirect(url_for("ahp_view", pos=pos))
+    a = sppk.ahp_pos(profiles, pos)
+    return render_template("ahp_matrix.html", pos=pos, criteria=criteria, a=a, mode_info=ahp_mode_info(pos),
+                           auto=sppk.pairwise_matrix(profiles[pos]), saaty=sppk.SAATY, RI=sppk.RI)
 
 
 @app.route("/topsis")
@@ -470,7 +525,7 @@ def ahp_view():
 def topsis_view():
     criteria, profiles, players = load_model()
     pos = int(request.args.get("pos", 0))
-    st = sppk.topsis_steps([p["skills"] for p in players], sppk.ahp(profiles[pos])["weights"])
+    st = sppk.topsis_steps([p["skills"] for p in players], sppk.ahp_pos(profiles, pos)["weights"])
     ep = min(int(request.args.get("p", 0)), len(players) - 1)
     ec = min(int(request.args.get("c", 0)), len(criteria) - 1)
     example = sppk.topsis_example([c["name"] for c in criteria], [p["code"] for p in players], st, ep, ec)
@@ -593,7 +648,7 @@ def panduan():
     return render_template("panduan.html")
 
 
-HELP_ANCHOR = {"index": "home", "dashboard": "index", "player_new": "player_form", "player_edit": "player_form", "result_detail": "results", "panduan": "alur"}
+HELP_ANCHOR = {"ahp_matrix": "ahp_matrix", "index": "home", "dashboard": "index", "player_new": "player_form", "player_edit": "player_form", "result_detail": "results", "panduan": "alur"}
 
 
 @app.context_processor

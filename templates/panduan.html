@@ -15,11 +15,11 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
 <div class="row g-4">
  <div class="col-lg-3 d-none d-lg-block"><div class="card sticky-top" style="top:16px"><div class="card-body toc">
   <div class="text-muted small text-uppercase mb-1">Isi</div>
-  <a href="#alur">Alur kerja &amp; metode</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
+  <a href="#alur">Alur kerja &amp; metode</a><a href="#metodologi">Kerangka metodologi</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
   {% if coach %}<a href="#index">Dashboard</a><a href="#players">Data Pemain</a><a href="#player_form">Tambah / Ubah Pemain</a>{% endif %}
   {% if user %}<a href="#player_detail">Analisis Pemain</a>{% endif %}
   {% if coach %}<a href="#criteria_view">Kriteria</a>{% endif %}
-  {% if user %}<a href="#ahp_view">Perhitungan AHP</a>{% endif %}
+  {% if user %}<a href="#ahp_view">Perhitungan AHP</a>{% endif %}{% if coach %}<a href="#ahp_matrix">Isi Matriks Perbandingan</a>{% endif %}
   {% if coach %}<a href="#topsis_view">Perhitungan TOPSIS</a>{% endif %}
   {% if user %}<a href="#results">Riwayat Hasil</a>{% endif %}
   {% if coach %}<a href="#logs">Log Aktivitas</a>{% endif %}{% if is_super %}<a href="#users">Akun &amp; Approval</a>{% endif %}
@@ -32,7 +32,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <p>Aplikasi ini menentukan posisi futsal yang paling sesuai untuk pemain berdasarkan skill saat ini, lalu menunjukkan skill mana yang perlu ditingkatkan untuk mencapai posisi yang diinginkan.</p>
  <ol>
   {% if coach %}<li><b>Atur kriteria</b> dan skor kebutuhan tiap posisi (1–9) di halaman Kriteria.</li>
-  <li><b>Periksa konsistensi AHP</b> di halaman Perhitungan AHP. Nilai CR harus di bawah 0,1.</li>
+  <li><b>Isi matriks perbandingan</b> tiap posisi di halaman Perhitungan AHP (tombol <i>Isi matriks manual</i>), atau biarkan otomatis. Nilai CR harus di bawah 0,1.</li>
   <li><b>Isi data dan skill pemain</b> (1–10) di halaman Data Pemain.</li>
   <li><b>Buka Analisis Pemain</b> untuk melihat posisi terbaik, gap skill, dan rekomendasi training.</li>
   <li><b>Simpan hasil</b> agar tercatat di riwayat dan bisa dilihat pemain, lalu export bila perlu.</li>
@@ -42,10 +42,37 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  </ol>
  <h3>Metode singkat</h3>
  <ul>
-  <li><b>AHP</b> menghasilkan bobot setiap kriteria untuk tiap posisi. Bobot diturunkan dari skor kebutuhan posisi (High = 9, Medium = 5, Low = 1) melalui matriks perbandingan berpasangan yang dibuat otomatis.</li>
+  <li><b>AHP</b> menghasilkan bobot setiap kriteria untuk tiap posisi dari matriks perbandingan berpasangan. Matriks diisi pelatih (manual) atau diturunkan otomatis dari skor kebutuhan (High = 9, Medium = 5, Low = 1). Lihat <a href="#metodologi">Kerangka metodologi</a>.</li>
   <li><b>TOPSIS</b> membandingkan skill pemain dengan seluruh pemain aktif memakai bobot AHP. Hasilnya nilai preferensi Cᵢ (0–1) untuk tiap posisi. Posisi dengan Cᵢ tertinggi adalah posisi paling sesuai.</li>
   <li><b>Gap skill</b> = target posisi (skor kebutuhan dikonversi ke 1–10) dikurangi skill pemain. <b>Prioritas</b> = gap × bobot AHP, sehingga gap pada kriteria penting muncul paling atas.</li>
  </ul>
+</section>
+
+<section id="metodologi">
+ <h2>Kerangka metodologi</h2>
+ <p>Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>. Bagian ini menjelaskan bagian yang mengikuti metode standar, bagian yang disesuaikan, dan bagian tambahan di luar kedua metode, agar dapat dipertanggungjawabkan secara akademik.</p>
+ <h3>Mengikuti metode standar</h3>
+ <ul>
+  <li><b>AHP:</b> bobot = rata-rata baris matriks ternormalisasi (pendekatan eigenvector utama), uji konsistensi λmax, CI = (λmax − n)/(n − 1), CR = CI/RI dengan RI Saaty, valid bila CR &lt; 0,1.</li>
+  <li><b>TOPSIS:</b> normalisasi vektor, matriks terbobot, solusi ideal A⁺/A⁻, jarak Euclidean D⁺/D⁻, nilai preferensi Cᵢ = D⁻/(D⁺ + D⁻). Semua kriteria bersifat benefit.</li>
+  <li><b>Integrasi:</b> AHP sebagai pemberi bobot kriteria untuk TOPSIS, pola hibrida yang umum dipakai dalam sistem pendukung keputusan.</li>
+ </ul>
+ <h3>Penyesuaian dan alasannya</h3>
+ <table class="table table-sm align-top"><thead><tr><th style="width:24%">Penyesuaian</th><th>Penjelasan</th></tr></thead>
+  <tr><td>Sumber matriks perbandingan</td><td>Pada AHP klasik, pakar membandingkan setiap pasangan kriteria. Sistem menyediakan dua mode per posisi:
+   <b>manual</b>, yaitu pelatih mengisi matriks pada skala Saaty (AHP klasik; CR benar-benar menguji konsistensi penilaian pelatih), dan
+   <b>otomatis</b>, yaitu matriks diturunkan dari skor kebutuhan 1–9 dengan d = sᵢ − sⱼ. Mode otomatis memudahkan saat pakar belum tersedia, tetapi matriksnya hampir selalu konsisten karena dibentuk dari rumus, sehingga CR rendah tidak membuktikan konsistensi penilaian. Untuk penelitian, gunakan mode manual.</td></tr>
+  <tr><td>Peran AHP pada hierarki</td><td>AHP dipakai untuk membobot kriteria per posisi, bukan untuk meranking alternatif posisi. Lapisan alternatif pada hierarki berfungsi sebagai kerangka konsep: setiap posisi memiliki vektor bobotnya sendiri.</td></tr>
+  <tr><td>Penentuan posisi terbaik</td><td>TOPSIS dijalankan sekali per posisi dengan alternatif = semua pemain aktif dan bobot posisi tersebut. Posisi terbaik seorang pemain adalah posisi dengan Cᵢ tertinggi dari keempat perhitungan. Karena bobot tiap perhitungan berbeda, perbandingan Cᵢ antar posisi bersifat pendekatan. Cᵢ juga relatif terhadap pemain lain, sehingga dapat berubah bila susunan pemain aktif berubah.</td></tr>
+ </table>
+ <h3>Bagian tambahan di luar AHP dan TOPSIS</h3>
+ <ul>
+  <li><b>Konversi target:</b> skor kebutuhan 1–9 → target skill 1–10 dengan round(s/9 × 10).</li>
+  <li><b>Gap berbobot:</b> gap = max(0, target − skill); prioritas = gap × bobot AHP posisi target.</li>
+  <li><b>Kesiapan posisi:</b> 1 − Σ(prioritas) / Σ(bobot × target), dinyatakan dalam persen.</li>
+  <li><b>Rekomendasi training:</b> pemetaan berbasis aturan dari kriteria ke jenis latihan.</li>
+ </ul>
+ <p class="note">Rumusan yang disarankan untuk laporan: "Sistem pendukung keputusan penentuan posisi pemain futsal menggunakan model hibrida AHP–TOPSIS, dengan AHP untuk pembobotan kriteria per posisi berdasarkan penilaian pelatih, TOPSIS untuk pemeringkatan kecocokan, dan analisis gap berbobot untuk rekomendasi latihan."</p>
 </section>
 
 <section id="home">
@@ -152,6 +179,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <ul>
   <li><b>Struktur hierarki:</b> Tujuan → Kriteria → Alternatif posisi.</li>
   <li><b>Tab posisi:</b> pilih Goalkeeper, Fixo/Anchor, Ala/Flank, atau Pivot.</li>
+  <li><b>Sumber matriks:</b> label <span class="badge bg-success">Manual</span> atau <span class="badge bg-secondary">Otomatis</span> menunjukkan asal matriks posisi ini.{% if coach %} Klik <b>Isi matriks manual</b> untuk mengisi penilaian sendiri.{% endif %}</li>
   <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b> untuk melihat 8 langkah dengan angka nyata. Pilih <i>Kriteria i</i> dan <i>Kriteria j</i> untuk contoh pasangan lain. Klik <b>Sembunyikan</b> untuk menutup.</li>
   <li><b>Bobot:</b> skor, kategori, dan bobot tiap kriteria, beserta λmax, CI, RI, CR, dan status konsistensi.</li>
   <li><b>Grafik perbandingan bobot</b> antar posisi.</li>
@@ -161,6 +189,19 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
 </section>{% endif %}
 
 {% if coach %}
+<section id="ahp_matrix">
+ <h2>Isi Matriks Perbandingan <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p><b>Fungsi:</b> pelatih sebagai pakar mengisi perbandingan berpasangan antar-kriteria untuk satu posisi (AHP klasik).</p>
+ <ol>
+  <li>Di halaman Perhitungan AHP, pilih tab posisi lalu klik <b>Isi matriks manual</b>.</li>
+  <li>Untuk setiap sel di atas diagonal, jawab: seberapa penting kriteria <b>baris</b> dibanding kriteria <b>kolom</b>? Pilih 1–9 jika kriteria baris lebih penting, atau 1/2–1/9 jika kriteria kolom yang lebih penting. Sel di bawah diagonal terisi otomatis.</li>
+  <li>Panel <b>Hasil langsung</b> menampilkan bobot dan CR setiap kali nilai diubah. Usahakan CR di bawah 0,1.</li>
+  <li>Klik <b>Simpan matriks manual</b>. Semua perhitungan (TOPSIS, gap, rekomendasi, export) langsung memakai bobot baru.</li>
+ </ol>
+ <p><b>Tombol bantu:</b> <i>Isi dengan nilai otomatis</i> mengisi sel dari skor kebutuhan sebagai titik awal; <i>Kosongkan</i> mengisi semua sel dengan 1. <b>Kembali ke mode otomatis</b> menghapus penilaian manual posisi itu.</p>
+ <p class="note">Jika CR ≥ 0,1, cari perbandingan yang saling bertentangan, misalnya A lebih penting dari B, B lebih penting dari C, tetapi C dinilai lebih penting dari A. Jika kriteria baru ditambahkan, pasangan yang belum dinilai memakai nilai otomatis sampai matriks disimpan ulang.</p>
+</section>
+
 <section id="topsis_view">
  <h2>Perhitungan TOPSIS <span class="badge bg-success role-tag">pelatih</span></h2>
  <p><b>Fungsi:</b> menampilkan langkah TOPSIS untuk satu posisi, dengan alternatif = semua pemain aktif.</p>

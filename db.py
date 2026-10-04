@@ -30,6 +30,12 @@ CREATE TABLE IF NOT EXISTS results(
   id INTEGER PRIMARY KEY, player_id INTEGER REFERENCES players(id), target_position INTEGER,
   best_position INTEGER, best_ci REAL, payload TEXT, created_by TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS ahp_mode(
+  position INTEGER PRIMARY KEY, mode TEXT NOT NULL DEFAULT 'auto' CHECK(mode IN ('auto','manual')),
+  updated_by TEXT, updated_at TEXT);
+CREATE TABLE IF NOT EXISTS pairwise(
+  position INTEGER, ci INTEGER REFERENCES criteria(id) ON DELETE CASCADE,
+  cj INTEGER REFERENCES criteria(id) ON DELETE CASCADE, value REAL NOT NULL, PRIMARY KEY(position, ci, cj));
 CREATE TABLE IF NOT EXISTS logs(
   id INTEGER PRIMARY KEY, username TEXT, role TEXT, category TEXT, action TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP);
