@@ -31,8 +31,8 @@ th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#5a6b66}
   <a class="navbar-brand display fs-4" href="{{ url_for('index') }}">SPPK Futsal</a>
   <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Buka menu"><span class="navbar-toggler-icon"></span></button>
   <div class="collapse navbar-collapse" id="nav">
-   {% set ep = request.endpoint %}
-   {% macro nl(label, endpoint, also=[], href=None) %}{% set on = ep == endpoint or ep in also %}<li class="nav-item"><a class="nav-link{{ ' active' if on }}" {{ 'aria-current=page' if on }} href="{{ href or url_for(endpoint) }}">{{ label }}{{ caller() if caller }}</a></li>{% endmacro %}
+   {% set cur_ep = request.endpoint %}
+   {% macro nl(label, endpoint, also=[], href=None) %}{% set on = cur_ep == endpoint or cur_ep in also %}<li class="nav-item"><a class="nav-link{{ ' active' if on }}" {{ 'aria-current=page' if on }} href="{{ href or url_for(endpoint) }}">{{ label }}{{ caller() if caller }}</a></li>{% endmacro %}
    <ul class="navbar-nav me-auto">
     {{ nl('Beranda', 'index') }}
     {% if is_staff %}

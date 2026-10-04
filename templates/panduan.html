@@ -43,7 +43,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <h3>Metode singkat</h3>
  <ul>
   <li><b>AHP</b> menghasilkan bobot setiap kriteria untuk tiap posisi dari matriks perbandingan berpasangan. Matriks diisi pelatih (manual) atau diturunkan otomatis dari skor kebutuhan (High = 9, Medium = 5, Low = 1). Lihat <a href="#metodologi">Kerangka metodologi</a>.</li>
-  <li><b>TOPSIS</b> membandingkan skill pemain dengan seluruh pemain aktif memakai bobot AHP. Hasilnya nilai preferensi Cᵢ (0–1) untuk tiap posisi. Posisi dengan Cᵢ tertinggi adalah posisi paling sesuai.</li>
+  <li><b>TOPSIS</b> dijalankan sekali untuk setiap pemain dengan <b>alternatif = 4 posisi</b>. Matriks keputusannya adalah bobot AHP tiap posisi, dan bobot kriterianya adalah profil skill pemain. Hasilnya nilai preferensi Cᵢ (0–1) untuk tiap posisi; posisi dengan Cᵢ tertinggi adalah posisi paling sesuai.</li>
   <li><b>Gap skill</b> = target posisi (skor kebutuhan dikonversi ke 1–10) dikurangi skill pemain. <b>Prioritas</b> = gap × bobot AHP, sehingga gap pada kriteria penting muncul paling atas.</li>
  </ul>
 </section>
@@ -54,7 +54,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <h3>Mengikuti metode standar</h3>
  <ul>
   <li><b>AHP:</b> bobot = rata-rata baris matriks ternormalisasi (pendekatan eigenvector utama), uji konsistensi λmax, CI = (λmax − n)/(n − 1), CR = CI/RI dengan RI Saaty, valid bila CR &lt; 0,1.</li>
-  <li><b>TOPSIS:</b> normalisasi vektor, matriks terbobot, solusi ideal A⁺/A⁻, jarak Euclidean D⁺/D⁻, nilai preferensi Cᵢ = D⁻/(D⁺ + D⁻). Semua kriteria bersifat benefit.</li>
+  <li><b>TOPSIS:</b> satu matriks keputusan dan satu vektor bobot per pemain; normalisasi vektor, matriks terbobot, solusi ideal A⁺/A⁻, jarak Euclidean D⁺/D⁻, nilai preferensi Cᵢ = D⁻/(D⁺ + D⁻). Semua kriteria bersifat benefit. Ranking posisi langsung dihasilkan oleh satu perhitungan TOPSIS.</li>
   <li><b>Integrasi:</b> AHP sebagai pemberi bobot kriteria untuk TOPSIS, pola hibrida yang umum dipakai dalam sistem pendukung keputusan.</li>
  </ul>
  <h3>Penyesuaian dan alasannya</h3>
@@ -63,7 +63,8 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
    <b>manual</b>, yaitu pelatih mengisi matriks pada skala Saaty (AHP klasik; CR benar-benar menguji konsistensi penilaian pelatih), dan
    <b>otomatis</b>, yaitu matriks diturunkan dari skor kebutuhan 1–9 dengan d = sᵢ − sⱼ. Mode otomatis memudahkan saat pakar belum tersedia, tetapi matriksnya hampir selalu konsisten karena dibentuk dari rumus, sehingga CR rendah tidak membuktikan konsistensi penilaian. Untuk penelitian, gunakan mode manual.</td></tr>
   <tr><td>Peran AHP pada hierarki</td><td>AHP dipakai untuk membobot kriteria per posisi, bukan untuk meranking alternatif posisi. Lapisan alternatif pada hierarki berfungsi sebagai kerangka konsep: setiap posisi memiliki vektor bobotnya sendiri.</td></tr>
-  <tr><td>Penentuan posisi terbaik</td><td>TOPSIS dijalankan sekali per posisi dengan alternatif = semua pemain aktif dan bobot posisi tersebut. Posisi terbaik seorang pemain adalah posisi dengan Cᵢ tertinggi dari keempat perhitungan. Karena bobot tiap perhitungan berbeda, perbandingan Cᵢ antar posisi bersifat pendekatan. Cᵢ juga relatif terhadap pemain lain, sehingga dapat berubah bila susunan pemain aktif berubah.</td></tr>
+  <tr><td>Penentuan posisi terbaik</td><td>TOPSIS per pemain dengan <b>alternatif = 4 posisi</b>. Matriks keputusan x<sub>pj</sub> = bobot AHP kriteria j pada posisi p (seberapa besar posisi menuntut kriteria itu). Vektor bobot w<sub>j</sub> = s<sub>j</sub>/Σs, yaitu profil skill pemain, sehingga kriteria yang menjadi kekuatan pemain berpengaruh lebih besar. Hasilnya: posisi yang paling banyak menuntut kekuatan pemain mendapat Cᵢ tertinggi. Pilihan penggunaan profil skill sebagai bobot perlu dijelaskan di laporan; TOPSIS-nya sendiri berjalan dengan langkah standar. Ranking tidak lagi bergantung pada pemain lain.</td></tr>
+  <tr><td>Pembanding antar-pemain</td><td>TOPSIS per posisi dengan alternatif = pemain aktif tetap tersedia di halaman Perhitungan TOPSIS (tab <i>Ranking pemain per posisi</i>) dan lampiran laporan, untuk melihat siapa paling cocok di satu posisi. Hasilnya tidak dipakai sebagai rekomendasi posisi.</td></tr>
  </table>
  <h3>Bagian tambahan di luar AHP dan TOPSIS</h3>
  <ul>
@@ -146,7 +147,8 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <ul>
   <li><b>Posisi diinginkan</b> (kanan atas): pilih posisi target. Gap dan rekomendasi akan dihitung ulang terhadap posisi ini.</li>
   <li><b>Posisi paling sesuai:</b> posisi dengan Cᵢ tertinggi, ditambah persentase <b>kesiapan</b> untuk posisi target.</li>
-  <li><b>Tabel ranking:</b> D⁺ (jarak ke solusi ideal terbaik), D⁻ (jarak ke solusi terburuk), dan Cᵢ untuk keempat posisi.</li>
+  <li><b>Tabel ranking:</b> hasil TOPSIS pemain ini dengan alternatif = 4 posisi: D⁺ (jarak ke solusi ideal terbaik), D⁻ (jarak ke solusi terburuk), dan Cᵢ.</li>
+  <li><b>Perhitungan TOPSIS posisi:</b> klik <b>Tampilkan / sembunyikan</b> untuk melihat langkah lengkapnya (bisa dibuka pemain juga).</li>
   <li><b>Radar skill:</b> garis hijau = skill saat ini, garis oranye putus-putus = target posisi. Area di dalam garis oranye menunjukkan kekurangan.</li>
   <li><b>Gap skill &amp; prioritas:</b> diurutkan dari skor prioritas terbesar. Status <i>perlu upgrade</i> berarti skill di bawah target.</li>
   <li><b>Rekomendasi training:</b> latihan untuk setiap skill yang kurang. Tiga teratas ditandai <span class="badge bg-danger">mendesak</span>.</li>
@@ -204,14 +206,18 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
 
 <section id="topsis_view">
  <h2>Perhitungan TOPSIS <span class="badge bg-success role-tag">pelatih</span></h2>
- <p><b>Fungsi:</b> menampilkan langkah TOPSIS untuk satu posisi, dengan alternatif = semua pemain aktif.</p>
+ <p><b>Fungsi:</b> menampilkan langkah TOPSIS. Ada dua tampilan:</p>
+ <h3>Ranking posisi per pemain (penentu rekomendasi)</h3>
  <ul>
-  <li><b>Tab posisi:</b> pilih posisi yang ingin dihitung.</li>
-  <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b> untuk 7 langkah dengan angka nyata. Pilih <i>pemain</i> dan <i>kriteria</i> untuk contoh lain.</li>
-  <li><b>Hasil ranking:</b> pemain diurutkan dari Cᵢ tertinggi untuk posisi ini.</li>
-  <li><b>Langkah 1–5:</b> bobot AHP, matriks keputusan X, matriks ternormalisasi R, matriks terbobot V dengan A⁺/A⁻, serta tabel D⁺, D⁻, Cᵢ, dan rank.</li>
+  <li><b>Ringkasan:</b> Cᵢ keempat posisi untuk setiap pemain beserta rekomendasinya. Klik kode pemain untuk melihat langkahnya.</li>
+  <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b>. Pilih <i>pemain</i>, <i>posisi</i>, dan <i>kriteria</i> untuk contoh lain. Langkah 0a–0b menjelaskan asal matriks keputusan dan bobot.</li>
+  <li><b>Langkah perhitungan:</b> skill dan bobot w, matriks keputusan X (bobot AHP tiap posisi), R, V dengan A⁺/A⁻, serta D⁺, D⁻, Cᵢ, dan rank posisi.</li>
  </ul>
- <p><b>Export PDF / Excel</b> mengunduh laporan lengkap keempat posisi beserta ringkasan rekomendasi semua pemain.</p>
+ <h3>Ranking pemain per posisi (pembanding)</h3>
+ <ul>
+  <li>Pilih tab posisi untuk melihat pemain yang paling cocok di posisi itu, misalnya saat menyusun line-up. Langkah dan contoh perhitungannya tersedia seperti sebelumnya.</li>
+ </ul>
+ <p><b>Export PDF / Excel</b> mengunduh ringkasan, langkah TOPSIS setiap pemain, dan lampiran pembanding per posisi.</p>
 </section>
 {% endif %}
 

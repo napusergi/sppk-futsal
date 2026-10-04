@@ -6,8 +6,40 @@
  <div><a class="btn btn-sm btn-outline-danger" href="{{ url_for('export_topsis_report', fmt='pdf') }}" target="_blank">Export PDF</a>
  <a class="btn btn-sm btn-court" href="{{ url_for('export_topsis_report', fmt='xlsx') }}">Export Excel</a></div>
 </div>
-<p class="note">Untuk tiap posisi, alternatif = pemain aktif, bobot = hasil AHP posisi tersebut, semua kriteria bersifat benefit. Cᵢ = D⁻ / (D⁺ + D⁻). Ranking posisi seorang pemain diperoleh dari perbandingan Cᵢ-nya di keempat posisi.</p>
-<ul class="nav nav-tabs mb-3">{% for p in POSITIONS %}<li class="nav-item"><a class="nav-link {{ 'active' if pos == loop.index0 }}" href="{{ url_for('topsis_view', pos=loop.index0) }}">{{ p }}</a></li>{% endfor %}</ul>
+{% from "_topsis_steps.html" import position_steps with context %}
+<ul class="nav nav-pills mb-3 gap-2">
+ <li class="nav-item"><a class="nav-link {{ 'active' if view == 'pemain' }}" href="{{ url_for('topsis_view', view='pemain') }}">Ranking posisi per pemain <span class="badge bg-warning text-dark">penentu rekomendasi</span></a></li>
+ <li class="nav-item"><a class="nav-link {{ 'active' if view == 'posisi' }}" href="{{ url_for('topsis_view', view='posisi') }}">Ranking pemain per posisi <span class="badge bg-light text-dark border">pembanding</span></a></li>
+</ul>
+{% if view == 'pemain' %}
+<p class="note">Satu perhitungan TOPSIS untuk setiap pemain. <b>Alternatif = 4 posisi</b>, <b>matriks keputusan = bobot AHP tiap posisi</b> (seberapa besar posisi menuntut tiap skill), <b>bobot kriteria = profil skill pemain</b> (sⱼ / Σs). Semua kriteria benefit. Posisi dengan Cᵢ tertinggi menjadi rekomendasi: posisi yang paling banyak menuntut kekuatan pemain tersebut.</p>
+<div class="card mb-3"><div class="card-body">
+ <h2 class="h4">Ringkasan: Cᵢ setiap posisi untuk setiap pemain</h2>
+ <div class="table-responsive"><table class="table table-sm table-hover align-middle">
+  <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th></tr></thead>
+  {% for pl in players %}{% set cis = summary[pl.id] %}{% set b = cis.index(cis|max) %}<tr {{ 'class=table-active' if loop.index0 == ep }}>
+   <td><a href="{{ url_for('topsis_view', view='pemain', p=loop.index0) }}">{{ pl.code }}</a> <span class="small text-muted">{{ pl.name }}</span></td>
+   <td class="small">{{ POSITIONS[pl.position] }}</td>
+   {% for c in cis %}<td class="num">{% if loop.index0 == b %}<b>{{ c|f(4) }}</b>{% else %}{{ c|f(4) }}{% endif %}</td>{% endfor %}
+   <td><span class="badge {{ 'bg-success' if b == pl.position or b in pl.alt_list else 'bg-warning text-dark' }}">{{ POSITIONS[b] }}</span></td></tr>{% endfor %}
+ </table></div>
+ <p class="small text-muted mb-0">Klik kode pemain untuk melihat langkah perhitungannya di bawah.</p>
+</div></div>
+{% call example_block("Rumus & contoh perhitungan TOPSIS — " ~ players[ep].code, example) %}
+ <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="view" value="pemain"><input type="hidden" name="ex" value="1">
+  <div class="col-auto"><label class="form-label small" for="ep">Pemain</label><select class="form-select form-select-sm" id="ep" name="p" onchange="this.form.submit()">{% for p in players %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ep }}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><label class="form-label small" for="ap">Posisi</label><select class="form-select form-select-sm" id="ap" name="ap" onchange="this.form.submit()">{% for p in POSITIONS %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ex_pos }}>{{ p }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><label class="form-label small" for="ec">Kriteria</label><select class="form-select form-select-sm" id="ec" name="c" onchange="this.form.submit()">{% for c in criteria %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ec }}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="col small text-muted">Langkah 0–4 memakai posisi &amp; kriteria terpilih; langkah 5–7 mencakup semua kriteria.</div>
+ </form>
+{% endcall %}
+<div class="card"><div class="card-body">
+ <h2 class="h4">Langkah perhitungan: {{ players[ep].code }} · {{ players[ep].name }}</h2>
+ {{ position_steps(st, criteria) }}
+</div></div>
+{% else %}
+<p class="note">Pembanding antar-pemain: untuk tiap posisi, alternatif = pemain aktif, bobot = hasil AHP posisi tersebut. Berguna untuk melihat <b>siapa yang paling cocok di satu posisi</b>, misalnya saat menyusun line-up. Rekomendasi posisi pemain tidak diambil dari sini.</p>
+<ul class="nav nav-tabs mb-3">{% for p in POSITIONS %}<li class="nav-item"><a class="nav-link {{ 'active' if pos == loop.index0 }}" href="{{ url_for('topsis_view', view='posisi', pos=loop.index0) }}">{{ p }}</a></li>{% endfor %}</ul>
 {% macro mtable(title, data, d=4) %}
 <h2 class="h5 mt-3">{{ title }}</h2>
 <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
@@ -17,7 +49,7 @@
 </table></div>
 {% endmacro %}
 {% call example_block("Rumus & contoh perhitungan TOPSIS — " ~ POSITIONS[pos], example) %}
- <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="pos" value="{{ pos }}"><input type="hidden" name="ex" value="1">
+ <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="view" value="posisi"><input type="hidden" name="pos" value="{{ pos }}"><input type="hidden" name="ex" value="1">
   <div class="col-auto"><label class="form-label small" for="ep">Pemain</label><select class="form-select form-select-sm" id="ep" name="p" onchange="this.form.submit()">{% for p in players %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ep }}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select></div>
   <div class="col-auto"><label class="form-label small" for="ec">Kriteria</label><select class="form-select form-select-sm" id="ec" name="c" onchange="this.form.submit()">{% for c in criteria %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ec }}>{{ c.name }}</option>{% endfor %}</select></div>
   <div class="col small text-muted">Langkah 1–4 memakai kriteria terpilih; langkah 5–7 mencakup semua kriteria.</div>
@@ -46,4 +78,5 @@
   {% for r in res %}<tr><th>{{ players[loop.index0].code }}</th><td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f(4) }}</td><td class="num">{{ st.rank[loop.index0] }}</td></tr>{% endfor %}
  </table></div>
 </div></div>
+{% endif %}
 {% endblock %}

@@ -320,7 +320,8 @@ def player_detail(pid):
     if res:
         log("perhitungan", f"Hitung AHP-TOPSIS {pl['code']}: terbaik {res['best']['name']} (Ci={res['best']['ci']:.3f}), target {res['target_name']}")
     history = get_db().execute("SELECT * FROM results WHERE player_id=? ORDER BY id DESC LIMIT 10", (pid,)).fetchall()
-    return render_template("player_detail.html", p=pl, pm=plm, res=res, criteria=criteria, target=target, history=history)
+    pt = sppk.position_topsis(load_model()[1], plm["skills"]) if res else None
+    return render_template("player_detail.html", p=pl, pm=plm, res=res, criteria=criteria, target=target, history=history, pt=pt)
 
 
 @app.route("/players/<int:pid>/save", methods=["POST"])
@@ -331,7 +332,7 @@ def save_result(pid):
     res, _, plm = run_analysis(pid, target)
     if not res:
         abort(400)
-    payload = {"skills": plm["skills"], **res}
+    payload = {"skills": plm["skills"], **{k: v for k, v in res.items() if k != "pt"}}
     db = get_db()
     db.execute("INSERT INTO results(player_id,target_position,best_position,best_ci,payload,created_by) VALUES(?,?,?,?,?,?)",
                (pid, target, res["best"]["pos"], res["best"]["ci"], json.dumps(payload), current_user()["username"]))
@@ -524,13 +525,26 @@ def ahp_matrix(pos):
 @coach_required
 def topsis_view():
     criteria, profiles, players = load_model()
-    pos = int(request.args.get("pos", 0))
-    st = sppk.topsis_steps([p["skills"] for p in players], sppk.ahp_pos(profiles, pos)["weights"])
-    ep = min(int(request.args.get("p", 0)), len(players) - 1)
+    names = [c["name"] for c in criteria]
+    view = request.args.get("view", "pemain")
     ec = min(int(request.args.get("c", 0)), len(criteria) - 1)
-    example = sppk.topsis_example([c["name"] for c in criteria], [p["code"] for p in players], st, ep, ec)
-    return render_template("topsis.html", pos=pos, criteria=criteria, players=players, st=st, example=example, ep=ep, ec=ec, w=st["w"], norm=st["norm"],
-                           v=st["v"], a_pos=st["a_pos"], a_neg=st["a_neg"], res=st["res"], order=st["order"])
+    if view == "posisi":
+        # pembanding: alternatif = pemain aktif, per posisi
+        pos = int(request.args.get("pos", 0))
+        st = sppk.topsis_steps([p["skills"] for p in players], sppk.ahp_pos(profiles, pos)["weights"])
+        ep = min(int(request.args.get("p", 0)), len(players) - 1)
+        example = sppk.topsis_example(names, [p["code"] for p in players], st, ep, ec)
+        return render_template("topsis.html", view=view, pos=pos, criteria=criteria, players=players, st=st, example=example,
+                               ep=ep, ec=ec, w=st["w"], norm=st["norm"], v=st["v"], a_pos=st["a_pos"], a_neg=st["a_neg"],
+                               res=st["res"], order=st["order"])
+    # utama: TOPSIS per pemain, alternatif = posisi
+    ep = min(int(request.args.get("p", 0)), len(players) - 1)
+    st = sppk.position_topsis(profiles, players[ep]["skills"])
+    ex_pos = min(int(request.args.get("ap", st["order"][0])), len(POSITIONS) - 1)
+    example = sppk.position_matrix_example(names, st, ex_pos, ec) + sppk.topsis_example(names, POSITIONS, st, ex_pos, ec)
+    summary = sppk.topsis_all(profiles, players)
+    return render_template("topsis.html", view=view, criteria=criteria, players=players, st=st, example=example,
+                           ep=ep, ec=ec, ex_pos=ex_pos, summary=summary)
 
 
 @app.route("/ahp/export.<fmt>")

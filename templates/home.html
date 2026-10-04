@@ -32,7 +32,7 @@
  {% for t, d in [
   ('Penilaian skill', 'Pelatih menilai ' ~ criteria|length ~ ' skill pemain pada skala 1–10, dari tes objektif, self-assessment, atau observasi.'),
   ('Bobot AHP', 'Pelatih menetapkan kebutuhan skill tiap posisi (High/Medium/Low). AHP mengubahnya menjadi bobot kriteria yang teruji konsistensinya.'),
-  ('Ranking TOPSIS', 'TOPSIS membandingkan skill pemain dengan bobot tiap posisi dan menghasilkan nilai kecocokan Cᵢ (0–1).'),
+  ('Ranking TOPSIS', 'Untuk setiap pemain, TOPSIS meranking keempat posisi berdasarkan bobot AHP dan profil skill pemain, menghasilkan nilai kecocokan Cᵢ (0–1).'),
   ('Gap & training', 'Selisih skill terhadap target posisi diurutkan menurut bobot, lalu dipetakan ke latihan yang spesifik.')] %}
  <div class="col-sm-6 col-lg-3"><div class="card h-100"><div class="card-body">
   <div class="small fw-semibold" style="color:var(--ball)">Langkah {{ loop.index }}</div>

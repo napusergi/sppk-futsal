@@ -9,7 +9,7 @@
 <p class="note">Laporan PDF/Excel memuat seluruh langkah untuk keempat posisi: sumber matriks, skor kebutuhan, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
 <div class="card mb-3"><div class="card-body small">
  <h2 class="h5">Kerangka metode</h2>
- <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS memakai bobot itu untuk menilai kecocokan pemain, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
+ <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking 4 posisi, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
  <p class="mb-0">Matriks perbandingan tiap posisi bisa berasal dari dua sumber: <span class="badge bg-success">Manual</span> diisi pelatih sebagai pakar (AHP klasik, CR menguji konsistensi penilaian pelatih), atau <span class="badge bg-secondary">Otomatis</span> diturunkan dari skor kebutuhan 1–9 (matriks hampir selalu konsisten karena dibentuk dari rumus). <a href="{{ url_for('panduan') }}#metodologi">Penjelasan lengkap</a></p>
 </div></div>
 <div class="card mb-3"><div class="card-body">

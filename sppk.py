@@ -163,6 +163,7 @@ def ahp_example(names, scores, a, i=0, j=1):
 def topsis_example(names, codes, st, p=0, j=0):
     """Contoh perhitungan TOPSIS untuk pemain indeks p pada kriteria j. Return list (judul, rumus, substitusi)."""
     x, k = st["x"], len(st["w"])
+    fx = lambda v: str(v) if isinstance(v, int) else _n(v)
     col = [r[j] for r in x]
     vcol = [r[j] for r in st["v"]]
     r = st["res"][p]
@@ -170,10 +171,10 @@ def topsis_example(names, codes, st, p=0, j=0):
     return [
         ("1. Pembagi normalisasi",
          "√Σᵢ xᵢⱼ²",
-         f"Kolom {cn}: √(" + " + ".join(f"{v}²" for v in col) + f") = √{sum(v * v for v in col)} = {_n(st['den'][j])}"),
+         f"Kolom {cn}: √(" + " + ".join(f"{fx(v)}²" for v in col) + f") = √{fx(sum(v * v for v in col))} = {_n(st['den'][j])}"),
         ("2. Normalisasi",
          "rᵢⱼ = xᵢⱼ / √Σᵢ xᵢⱼ²",
-         f"r({pc},{cn}) = {x[p][j]} / {_n(st['den'][j])} = {_n(st['norm'][p][j])}"),
+         f"r({pc},{cn}) = {fx(x[p][j])} / {_n(st['den'][j])} = {_n(st['norm'][p][j])}"),
         ("3. Normalisasi terbobot",
          "vᵢⱼ = wⱼ · rᵢⱼ",
          f"v({pc},{cn}) = {_n(st['w'][j])} × {_n(st['norm'][p][j])} = {_n(st['v'][p][j])}"),
@@ -199,6 +200,36 @@ def target_level(score):
     return round(score / 9 * 10)
 
 
+def position_topsis(profiles, skills):
+    """TOPSIS per pemain dengan alternatif = posisi (penentu posisi terbaik).
+
+    Matriks keputusan X (posisi × kriteria): x_pj = bobot AHP kriteria j untuk posisi p
+      -> seberapa besar posisi p menuntut kriteria j (hasil AHP dipakai langsung).
+    Vektor bobot TOPSIS: w_j = s_j / Σs, profil skill pemain yang dinormalisasi
+      -> kriteria yang menjadi kekuatan pemain mendapat pengaruh lebih besar.
+    Semua kriteria benefit. Posisi dengan Cᵢ tertinggi = posisi yang paling banyak menuntut
+    kekuatan pemain tersebut.
+    """
+    n_pos, k = len(POSITIONS), len(skills)
+    wpos = [ahp_pos(profiles, p)["weights"] for p in range(n_pos)]
+    total = sum(skills) or 1
+    st = topsis_steps([row[:] for row in wpos], [s / total for s in skills])
+    st.update({"skills": skills, "skill_total": total})
+    return st
+
+
+def position_matrix_example(names, st, p=0, j=0):
+    """Langkah 0: matriks keputusan dan vektor bobot untuk contoh perhitungan TOPSIS per pemain."""
+    pos, cn = POSITIONS[p], names[j]
+    sk = st["skills"]
+    return [("0a. Matriks keputusan (alternatif = posisi)",
+             "xₚⱼ = bobot AHP kriteria j pada posisi p",
+             f"x({pos},{cn}) = {_n(st['x'][p][j])}  (dari hasil AHP posisi {pos})"),
+            ("0b. Bobot kriteria dari profil skill pemain",
+             "wⱼ = sⱼ / Σₖ sₖ",
+             f"w({cn}) = {sk[j]} / (" + " + ".join(str(v) for v in sk) + f") = {sk[j]} / {st['skill_total']} = {_n(st['w'][j])}")]
+
+
 def analyze(criteria, profiles, players, player_id, target_pos):
     """Analisis lengkap satu pemain.
 
@@ -208,11 +239,8 @@ def analyze(criteria, profiles, players, player_id, target_pos):
     """
     ahps = {p: ahp_pos(profiles, p) for p in range(len(POSITIONS))}
     idx = next(i for i, pl in enumerate(players) if pl["id"] == player_id)
-    mat = [pl["skills"] for pl in players]
-    ranking = []
-    for p in range(len(POSITIONS)):
-        r = topsis(mat, ahps[p]["weights"])[idx]
-        ranking.append({"pos": p, "name": POSITIONS[p], **r})
+    pt = position_topsis(profiles, players[idx]["skills"])
+    ranking = [{"pos": p, "name": POSITIONS[p], **pt["res"][p]} for p in range(len(POSITIONS))]
     ranking.sort(key=lambda x: x["ci"], reverse=True)
 
     w = ahps[target_pos]["weights"]
@@ -231,7 +259,12 @@ def analyze(criteria, profiles, players, player_id, target_pos):
 
 
 def topsis_all(profiles, players):
-    """Cᵢ semua pemain untuk semua posisi."""
+    """Cᵢ setiap posisi untuk setiap pemain (TOPSIS per pemain, alternatif = posisi)."""
+    return {pl["id"]: [r["ci"] for r in position_topsis(profiles, pl["skills"])["res"]] for pl in players}
+
+
+def player_cohort_ci(profiles, players):
+    """Pembanding: TOPSIS per posisi dengan alternatif = pemain aktif (siapa paling cocok di posisi itu)."""
     mat = [pl["skills"] for pl in players]
     res = {pl["id"]: [] for pl in players}
     for p in range(len(POSITIONS)):

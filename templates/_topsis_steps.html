@@ -1,0 +1,28 @@
+{# Langkah TOPSIS per pemain: alternatif = posisi #}
+{% macro position_steps(st, criteria) %}
+{% macro mt(title, data, extra=None) %}
+<h3 class="h6 mt-3">{{ title }}</h3>
+<div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
+ <thead><tr><th></th>{% for c in criteria %}<th class="num" title="{{ c.name }}">{{ c.name[:8] }}</th>{% endfor %}</tr></thead>
+ {% for row in data %}<tr><th>{{ POSITIONS[loop.index0] }}</th>{% for v in row %}<td class="num">{{ v|f(4) }}</td>{% endfor %}</tr>{% endfor %}
+ {{ caller() if caller }}
+</table></div>
+{% endmacro %}
+<h3 class="h6">Bobot kriteria w = profil skill pemain (sⱼ / Σs, Σs = {{ st.skill_total }})</h3>
+<div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
+ <tr><th></th>{% for c in criteria %}<th class="num" title="{{ c.name }}">{{ c.name[:8] }}</th>{% endfor %}</tr>
+ <tr><th>Skill s</th>{% for v in st.skills %}<td class="num">{{ v }}</td>{% endfor %}</tr>
+ <tr><th>w</th>{% for v in st.w %}<td class="num">{{ v|f(4) }}</td>{% endfor %}</tr>
+</table></div>
+{% call mt("1. Matriks keputusan X (bobot AHP tiap posisi)", st.x) %}<tr><th>√Σx²</th>{% for d in st.den %}<td class="num">{{ d|f(4) }}</td>{% endfor %}</tr>{% endcall %}
+{{ mt("2. Matriks ternormalisasi R (rₚⱼ = xₚⱼ / √Σx²)", st.norm) }}
+{% call mt("3. Matriks terbobot V (vₚⱼ = wⱼ · rₚⱼ) & solusi ideal", st.v) %}
+ <tr class="table-success"><th>A⁺</th>{% for x in st.a_pos %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr>
+ <tr class="table-danger"><th>A⁻</th>{% for x in st.a_neg %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr>
+{% endcall %}
+<h3 class="h6 mt-3">4. Jarak ke solusi ideal &amp; 5. Nilai preferensi</h3>
+<div class="table-responsive"><table class="table table-sm table-bordered font-monospace small" style="max-width:620px">
+ <thead><tr><th>Posisi</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th class="num">Rank</th></tr></thead>
+ {% for r in st.res %}<tr {{ 'class=table-success' if st.rank[loop.index0] == 1 }}><th>{{ POSITIONS[loop.index0] }}</th><td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num"><b>{{ r.ci|f(4) }}</b></td><td class="num">{{ st.rank[loop.index0] }}</td></tr>{% endfor %}
+</table></div>
+{% endmacro %}
