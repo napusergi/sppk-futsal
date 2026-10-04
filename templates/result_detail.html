@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Hasil {{ r.code }} · {{ r.created_at }}</h1>
+<p class="text-muted">Disimpan oleh {{ r.created_by }}. Snapshot ini tidak berubah walaupun data pemain atau kriteria diubah kemudian.</p>
+<div class="row g-3">
+ <div class="col-lg-5"><div class="card"><div class="card-body">
+  <div class="text-muted small text-uppercase">Posisi paling sesuai</div><div class="big mb-2">{{ res.best.name }}</div>
+  <table class="table table-sm">{% for x in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ x.name }}</td><td class="num">{{ x.ci|f }}</td></tr>{% endfor %}</table>
+  <p class="mb-0">Target: <b>{{ res.target_name }}</b> · kesiapan {{ (res.target_readiness*100)|round(1) }}%</p>
+ </div></div></div>
+ <div class="col-lg-7"><div class="card"><div class="card-body">
+  <h2 class="h4">Prioritas upgrade &amp; training</h2>
+  <ol>{% for g in res.recommendations %}<li class="mb-1"><b>{{ g.criterion }}</b> (skill {{ g.skill }} → target {{ g.target }}, prioritas {{ g.priority|f }})<br>{{ g.training }}</li>{% else %}<li>Tidak ada gap.</li>{% endfor %}</ol>
+ </div></div></div>
+</div>
+{% endblock %}

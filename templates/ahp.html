@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% from "_example.html" import example_block %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+ <h1 class="mb-0">Perhitungan AHP</h1>
+ <div><a class="btn btn-sm btn-outline-danger" href="{{ url_for('export_ahp', fmt='pdf') }}" target="_blank">Export PDF</a>
+ <a class="btn btn-sm btn-court" href="{{ url_for('export_ahp', fmt='xlsx') }}">Export Excel</a></div>
+</div>
+<p class="note">Laporan PDF/Excel memuat seluruh langkah untuk keempat posisi: skor kebutuhan, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
+<div class="card mb-3"><div class="card-body">
+ <h2 class="h5">Struktur hierarki</h2>
+ <div class="text-center small">
+  <div class="d-inline-block border rounded px-3 py-2 fw-semibold" style="border-color:var(--court)!important">Tujuan: Menentukan posisi terbaik pemain futsal</div>
+  <div>│</div>
+  <div class="d-flex flex-wrap justify-content-center gap-1">{% for c in criteria %}<span class="border rounded px-2 py-1 bg-white">{{ c.name }}</span>{% endfor %}</div>
+  <div class="text-muted">Kriteria (bobot berbeda per posisi)</div><div>│</div>
+  <div class="d-flex flex-wrap justify-content-center gap-2">{% for p in POSITIONS %}<span class="border rounded px-3 py-1" style="background:var(--court-soft)">{{ p }}</span>{% endfor %}</div>
+  <div class="text-muted">Alternatif posisi</div>
+ </div>
+</div></div>
+<ul class="nav nav-tabs mb-3">{% for p in POSITIONS %}<li class="nav-item"><a class="nav-link {{ 'active' if pos == loop.index0 }}" href="{{ url_for('ahp_view', pos=loop.index0) }}">{{ p }}</a></li>{% endfor %}</ul>
+{% call example_block("Rumus & contoh perhitungan AHP — " ~ POSITIONS[pos], example) %}
+ <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="pos" value="{{ pos }}"><input type="hidden" name="ex" value="1">
+  <div class="col-auto"><label class="form-label small" for="ci">Kriteria i</label><select class="form-select form-select-sm" id="ci" name="ci" onchange="this.form.submit()">{% for c in criteria %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ei }}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><label class="form-label small" for="cj">Kriteria j</label><select class="form-select form-select-sm" id="cj" name="cj" onchange="this.form.submit()">{% for c in criteria %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ej }}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="col small text-muted">Pilih pasangan kriteria untuk contoh lain.</div>
+ </form>
+{% endcall %}
+<div class="row g-3">
+ <div class="col-lg-5"><div class="card h-100"><div class="card-body">
+  <h2 class="h4">Bobot {{ POSITIONS[pos] }}</h2>
+  {% set mx = a.weights|max %}
+  <table class="table table-sm align-middle"><thead><tr><th>Kriteria</th><th class="num">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
+   {% for c in criteria %}<tr><td>{{ c.name }}</td><td class="num">{{ scores[loop.index0] }}</td><td class="small">{{ category(scores[loop.index0]) }}</td><td class="num">{{ a.weights[loop.index0]|f(4) }}</td><td><div class="bar"><i style="width:{{ a.weights[loop.index0]/mx*100 }}%"></i></div></td></tr>{% endfor %}
+  </table>
+  <p class="font-monospace small mb-1">λmax = {{ a.lambda_max|f(4) }} · CI = {{ a.ci|f(4) }} · RI = {{ a.ri }} · CR = {{ a.cr|f(4) }}</p>
+  {% if a.consistent %}<span class="badge bg-success">Konsisten (CR &lt; 0,1)</span>{% else %}<span class="badge bg-danger">Tidak konsisten — revisi skor kebutuhan</span>{% endif %}
+ </div></div></div>
+ <div class="col-lg-7"><div class="card h-100"><div class="card-body">
+  <h2 class="h4">Perbandingan bobot antar posisi</h2>
+  <div style="position:relative;height:380px"><canvas id="cmp"></canvas></div>
+ </div></div></div>
+ <div class="col-12"><div class="card"><div class="card-body">
+  <h2 class="h4">Matriks perbandingan berpasangan</h2>
+  <p class="note">Dibentuk otomatis: d = sᵢ − sⱼ; aᵢⱼ = d + 1 jika d ≥ 0, aᵢⱼ = 1/(1 − d) jika d &lt; 0 (dibatasi skala Saaty 1–9).</p>
+  <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
+   <thead><tr><th></th>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}</tr></thead>
+   {% for row in a.matrix %}<tr><th>{{ criteria[loop.index0].name }}</th>{% for v in row %}<td class="num">{{ v|int if v >= 1 else '1/' ~ (1/v)|round|int }}</td>{% endfor %}</tr>{% endfor %}
+   <tr><th>Jumlah kolom</th>{% for s in a.col_sum %}<td class="num">{{ s|f(2) }}</td>{% endfor %}</tr>
+  </table></div>
+  <h2 class="h5 mt-3">Matriks ternormalisasi</h2>
+  <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
+   <thead><tr><th></th>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}<th class="num">Bobot</th></tr></thead>
+   {% for row in a.normalized %}<tr><th>{{ criteria[loop.index0].name }}</th>{% for v in row %}<td class="num">{{ v|f(3) }}</td>{% endfor %}<td class="num"><b>{{ a.weights[loop.index0]|f(4) }}</b></td></tr>{% endfor %}
+  </table></div>
+  <h2 class="h5 mt-3">Uji konsistensi</h2>
+  <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small" style="max-width:520px">
+   <thead><tr><th>Kriteria</th><th class="num">w</th><th class="num">(Aw)</th><th class="num">(Aw)/w</th></tr></thead>
+   {% for c in criteria %}<tr><th>{{ c.name }}</th><td class="num">{{ a.weights[loop.index0]|f(4) }}</td><td class="num">{{ a.aw[loop.index0]|f(4) }}</td><td class="num">{{ a.ratio[loop.index0]|f(4) }}</td></tr>{% endfor %}
+  </table></div>
+  <p class="font-monospace small mb-0">λmax = Σ((Aw)/w)/n = {{ a.lambda_max|f(4) }} · CI = ({{ a.lambda_max|f(4) }} − {{ a.n }})/({{ a.n }} − 1) = {{ a.ci|f(4) }} · CR = CI/RI = {{ a.ci|f(4) }}/{{ a.ri }} = <b>{{ a.cr|f(4) }}</b></p>
+ </div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const colors=["#0f6b57","#e0761f","#3b6fb6","#9b3d8f"];
+new Chart(document.getElementById("cmp"),{type:"bar",
+ data:{labels:{{ criteria|map(attribute='name')|list|tojson }},datasets:[{% for s in summary %}{label:{{ POSITIONS[loop.index0]|tojson }},data:{{ s.weights|tojson }},backgroundColor:colors[{{ loop.index0 }}]},{% endfor %}]},
+ options:{maintainAspectRatio:false,indexAxis:"y",scales:{x:{title:{display:true,text:"Bobot"}}}}});
+</script>
+{% endblock %}

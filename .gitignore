@@ -1,0 +1,12 @@
+# Database (berisi data pemain & hash password) - dibuat otomatis oleh app.py
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Lokal
+.claude/
+*.log

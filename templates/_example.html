@@ -1,0 +1,24 @@
+{% macro example_block(title, steps) %}
+{% set open = request.args.get('ex') == '1' %}
+<div class="card mb-3" style="border-left:4px solid var(--ball)"><div class="card-body">
+ <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <h2 class="h4 mb-0">{{ title }}</h2>
+  <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#exampleBody"
+          aria-expanded="{{ 'true' if open else 'false' }}" aria-controls="exampleBody" id="exampleToggle">{{ 'Sembunyikan' if open else 'Tampilkan' }}</button>
+ </div>
+ <div class="collapse {{ 'show' if open }} mt-3" id="exampleBody">
+  {{ caller() }}
+  <div class="table-responsive"><table class="table table-sm align-top mb-0">
+   <thead><tr><th style="width:18%">Langkah</th><th style="width:27%">Rumus</th><th>Substitusi angka</th></tr></thead>
+   {% for t, f, s in steps %}<tr><td class="fw-semibold" style="white-space:normal">{{ t }}</td>
+    <td class="font-monospace small" style="white-space:normal">{{ f }}</td>
+    <td class="font-monospace small" style="white-space:normal;word-break:break-word">{{ s }}</td></tr>{% endfor %}
+  </table></div>
+ </div>
+</div></div>
+<script>
+(function(){const b=document.getElementById("exampleBody"),t=document.getElementById("exampleToggle");
+ b.addEventListener("shown.bs.collapse",()=>t.textContent="Sembunyikan");
+ b.addEventListener("hidden.bs.collapse",()=>t.textContent="Tampilkan");})();
+</script>
+{% endmacro %}

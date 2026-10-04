@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Panduan · SPPK Posisi Futsal{% endblock %}
+{% block content %}
+{% set coach = is_staff %}
+<style>
+.doc section{scroll-margin-top:80px;padding-block:4px 12px;border-bottom:1px solid #d6e0dd;margin-bottom:16px}
+.doc h2{margin-top:8px}.doc h3{font-size:1rem;font-weight:600;margin-top:12px;font-family:inherit}
+.doc p,.doc li{max-width:75ch}
+.toc a{display:block;padding:3px 0;color:inherit;text-decoration:none;font-size:.9rem}.toc a:hover{color:var(--court)}
+.role-tag{font-size:.7rem;vertical-align:middle}
+</style>
+<h1>Panduan Penggunaan</h1>
+<p class="text-muted">Fungsi dan cara memakai setiap halaman. {% if user %}Anda masuk sebagai <b>{{ ROLE_LABEL[user.role] }}</b>{{ ', jadi panduan menampilkan halaman yang bisa Anda akses' if not coach }}.{% else %}Login untuk melihat panduan halaman sesuai hak akses Anda.{% endif %}
+Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah atas membuka bagian panduan untuk halaman yang sedang dibuka.</p>
+<div class="row g-4">
+ <div class="col-lg-3 d-none d-lg-block"><div class="card sticky-top" style="top:16px"><div class="card-body toc">
+  <div class="text-muted small text-uppercase mb-1">Isi</div>
+  <a href="#alur">Alur kerja &amp; metode</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
+  {% if coach %}<a href="#index">Dashboard</a><a href="#players">Data Pemain</a><a href="#player_form">Tambah / Ubah Pemain</a>{% endif %}
+  {% if user %}<a href="#player_detail">Analisis Pemain</a>{% endif %}
+  {% if coach %}<a href="#criteria_view">Kriteria</a>{% endif %}
+  {% if user %}<a href="#ahp_view">Perhitungan AHP</a>{% endif %}
+  {% if coach %}<a href="#topsis_view">Perhitungan TOPSIS</a>{% endif %}
+  {% if user %}<a href="#results">Riwayat Hasil</a>{% endif %}
+  {% if coach %}<a href="#logs">Log Aktivitas</a>{% endif %}{% if is_super %}<a href="#users">Akun &amp; Approval</a>{% endif %}
+  <a href="#faq">Tanya jawab</a>
+ </div></div></div>
+ <div class="col-lg-9 doc">
+
+<section id="alur">
+ <h2>Alur kerja &amp; metode</h2>
+ <p>Aplikasi ini menentukan posisi futsal yang paling sesuai untuk pemain berdasarkan skill saat ini, lalu menunjukkan skill mana yang perlu ditingkatkan untuk mencapai posisi yang diinginkan.</p>
+ <ol>
+  {% if coach %}<li><b>Atur kriteria</b> dan skor kebutuhan tiap posisi (1–9) di halaman Kriteria.</li>
+  <li><b>Periksa konsistensi AHP</b> di halaman Perhitungan AHP. Nilai CR harus di bawah 0,1.</li>
+  <li><b>Isi data dan skill pemain</b> (1–10) di halaman Data Pemain.</li>
+  <li><b>Buka Analisis Pemain</b> untuk melihat posisi terbaik, gap skill, dan rekomendasi training.</li>
+  <li><b>Simpan hasil</b> agar tercatat di riwayat dan bisa dilihat pemain, lalu export bila perlu.</li>
+  {% else %}<li>Pelatih menilai skill Anda dan menjalankan perhitungan.</li>
+  <li>Anda melihat posisi yang paling sesuai, gap skill, dan rekomendasi training di halaman <b>Hasil Saya</b>.</li>
+  <li>Hasil yang disimpan pelatih bisa dibuka kembali di halaman <b>Riwayat</b>.</li>{% endif %}
+ </ol>
+ <h3>Metode singkat</h3>
+ <ul>
+  <li><b>AHP</b> menghasilkan bobot setiap kriteria untuk tiap posisi. Bobot diturunkan dari skor kebutuhan posisi (High = 9, Medium = 5, Low = 1) melalui matriks perbandingan berpasangan yang dibuat otomatis.</li>
+  <li><b>TOPSIS</b> membandingkan skill pemain dengan seluruh pemain aktif memakai bobot AHP. Hasilnya nilai preferensi Cᵢ (0–1) untuk tiap posisi. Posisi dengan Cᵢ tertinggi adalah posisi paling sesuai.</li>
+  <li><b>Gap skill</b> = target posisi (skor kebutuhan dikonversi ke 1–10) dikurangi skill pemain. <b>Prioritas</b> = gap × bobot AHP, sehingga gap pada kriteria penting muncul paling atas.</li>
+ </ul>
+</section>
+
+<section id="home">
+ <h2>Beranda</h2>
+ <p><b>Fungsi:</b> halaman pertama yang bisa dibuka siapa saja tanpa login. Isinya informasi umum: tujuan aplikasi, jumlah pemain, kriteria, dan pemain multi-posisi, sebaran pemain per posisi, cara kerja, serta tiga skill dengan bobot terbesar untuk tiap posisi. Nama dan nilai pemain tidak ditampilkan di sini.</p>
+ <p><b>Cara pakai:</b> klik <b>Login</b> jika sudah punya akun, atau <b>Buat akun</b> untuk mendaftar. Setelah login, tombol <b>Buka aplikasi</b> membawa Anda ke halaman utama sesuai role.</p>
+</section>
+
+<section id="register">
+ <h2>Buat akun</h2>
+ <ol>
+  <li>Klik <b>Buat akun</b> di bilah atas atau di halaman login.</li>
+  <li>Isi nama lengkap, username (huruf dan angka saja), dan password minimal 6 karakter dua kali.</li>
+  <li>Pilih <b>daftar sebagai</b> Pemain atau Pelatih, lalu tulis keterangan untuk Super Admin, misalnya tim dan kode pemain Anda.</li>
+  <li>Klik <b>Kirim pendaftaran</b>. Status akun menjadi <i>menunggu approval</i>.</li>
+  <li>Setelah Super Admin menyetujui, login dengan username dan password yang Anda daftarkan. Jika ditolak, pesan penolakan muncul saat login.</li>
+ </ol>
+</section>
+
+<section id="login">
+ <h2>Login &amp; hak akses</h2>
+ <p>Masukkan username dan password, lalu klik <b>Masuk</b>. Klik <b>Keluar</b> di kanan atas untuk mengakhiri sesi. Menu di bagian atas tetap terlihat saat halaman di-scroll.</p>
+ <table class="table table-sm" style="max-width:640px"><thead><tr><th>Role</th><th>Hak akses</th></tr></thead>
+  <tr><td>Super Admin</td><td>Semua akses pelatih, ditambah halaman Akun: approval pendaftaran, buat akun, dan ubah password akun lain.</td></tr>
+  <tr><td>Pelatih</td><td>Kelola pemain, kriteria, perhitungan, simpan hasil, log, dan export. Tidak bisa membuka halaman Akun.</td></tr>
+  <tr><td>Pemain</td><td>Hanya melihat data, hasil analisis, riwayat hasil, dan bobot AHP miliknya. Tidak bisa mengubah data.</td></tr></table>
+</section>
+
+{% if coach %}
+<section id="index">
+ <h2>Dashboard <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p class="small text-muted">Menu: <b>Dashboard</b>. Berbeda dengan Beranda, halaman ini berisi data lengkap pemain.</p>
+ <p><b>Fungsi:</b> ringkasan kondisi tim dalam satu halaman.</p>
+ <ul>
+  <li><b>Kartu angka:</b> jumlah pemain aktif, pemain di arsip, kriteria, dan hasil tersimpan.</li>
+  <li><b>Tabel kecocokan posisi:</b> nilai Cᵢ setiap pemain untuk keempat posisi. Angka tebal adalah nilai tertinggi. Label <span class="badge bg-success">hijau</span> berarti rekomendasi sama dengan posisi terdaftar atau alternatif pemain; <span class="badge bg-warning text-dark">kuning</span> berarti sistem menyarankan posisi lain.</li>
+  <li><b>Konsistensi AHP:</b> nilai CR tiap posisi. Jika ada yang merah, revisi skor kebutuhan di halaman Kriteria.</li>
+  <li><b>Aktivitas terbaru:</b> 8 log terakhir.</li>
+ </ul>
+ <p><b>Cara pakai:</b> klik kode pemain untuk membuka analisisnya. Tombol <b>CSV</b> dan <b>Excel</b> mengunduh tabel kecocokan (Excel juga berisi bobot AHP dan skill pemain).</p>
+</section>
+
+<section id="players">
+ <h2>Data Pemain <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p><b>Fungsi:</b> daftar semua pemain aktif dan arsip.</p>
+ <ul>
+  <li><b>+ Tambah pemain</b> membuka form pemain baru.</li>
+  <li><b>Analisis</b> membuka hasil perhitungan pemain. <b>Ubah</b> membuka form edit.</li>
+  <li><b>Arsipkan</b> memindahkan pemain ke arsip. Pemain arsip tidak ikut perhitungan TOPSIS, tetapi data dan riwayatnya tetap tersimpan. Pemain <b>tidak bisa dihapus</b>.</li>
+  <li><b>Lihat arsip</b> menampilkan pemain yang diarsipkan; klik <b>Pulihkan</b> untuk mengaktifkannya lagi.</li>
+ </ul>
+ <p class="note">Mengarsipkan atau memulihkan pemain mengubah nilai Cᵢ pemain lain, karena TOPSIS membandingkan antar-pemain aktif.</p>
+</section>
+
+<section id="player_form">
+ <h2>Tambah / Ubah Pemain <span class="badge bg-success role-tag">pelatih</span></h2>
+ <ol>
+  <li>Isi <b>kode</b> (unik, mis. AL4) dan <b>nama</b>.</li>
+  <li>Pilih <b>posisi utama</b>, <b>posisi diinginkan</b>, dan centang <b>posisi alternatif</b> bila pemain bisa bermain di beberapa posisi.</li>
+  <li>Pilih <b>sumber penilaian</b>: tes objektif, self-assessment, atau observasi pelatih.</li>
+  <li>Isi nilai <b>skill 1–10</b> untuk setiap kriteria (1 = sangat lemah, 10 = sangat baik).</li>
+  <li>Klik <b>Simpan</b>. Setiap perubahan skill tercatat di log beserta nilai lama dan baru.</li>
+ </ol>
+ <p class="note">Akun login untuk pemain baru dibuat oleh Super Admin di halaman Akun, atau pemain mendaftar sendiri lalu disetujui Super Admin.</p>
+</section>
+{% endif %}
+
+{% if user %}<section id="player_detail">
+ <h2>Analisis Pemain {% if not coach %}(Hasil Saya){% endif %}</h2>
+ <p><b>Fungsi:</b> menampilkan hasil keputusan untuk satu pemain.</p>
+ <ul>
+  <li><b>Posisi diinginkan</b> (kanan atas): pilih posisi target. Gap dan rekomendasi akan dihitung ulang terhadap posisi ini.</li>
+  <li><b>Posisi paling sesuai:</b> posisi dengan Cᵢ tertinggi, ditambah persentase <b>kesiapan</b> untuk posisi target.</li>
+  <li><b>Tabel ranking:</b> D⁺ (jarak ke solusi ideal terbaik), D⁻ (jarak ke solusi terburuk), dan Cᵢ untuk keempat posisi.</li>
+  <li><b>Radar skill:</b> garis hijau = skill saat ini, garis oranye putus-putus = target posisi. Area di dalam garis oranye menunjukkan kekurangan.</li>
+  <li><b>Gap skill &amp; prioritas:</b> diurutkan dari skor prioritas terbesar. Status <i>perlu upgrade</i> berarti skill di bawah target.</li>
+  <li><b>Rekomendasi training:</b> latihan untuk setiap skill yang kurang. Tiga teratas ditandai <span class="badge bg-danger">mendesak</span>.</li>
+  <li><b>Riwayat hasil tersimpan:</b> snapshot hasil yang pernah disimpan pelatih.</li>
+ </ul>
+ <p><b>Tombol:</b> <b>Export CSV / Excel</b> mengunduh hasil analisis.
+ {% if coach %}<b>Simpan hasil</b> menyimpan snapshot ke riwayat (dan terlihat oleh pemain). <b>Ubah skill</b> membuka form pemain. <b>Lihat perhitungan AHP / TOPSIS</b> membuka langkah perhitungan untuk posisi target.{% else %}<b>Lihat perhitungan AHP</b> membuka bobot kriteria posisi target.{% endif %}</p>
+</section>{% endif %}
+
+{% if coach %}
+<section id="criteria_view">
+ <h2>Kriteria <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p><b>Fungsi:</b> mengelola kriteria (skill), teks rekomendasi training, dan skor kebutuhan per posisi yang menjadi dasar AHP.</p>
+ <ul>
+  <li><b>Ubah:</b> edit nama, training, atau skor kebutuhan (1–9) di baris kriteria, lalu klik <b>Simpan</b> di baris itu.</li>
+  <li><b>Tambah:</b> isi form di bawah tabel. Skill semua pemain untuk kriteria baru otomatis diisi 5; perbarui lewat form pemain.</li>
+  <li><b>Hapus:</b> klik <b>Hapus</b> dan konfirmasi. Nilai skill pemain untuk kriteria itu ikut terhapus. Minimal 3 kriteria harus tersisa.</li>
+ </ul>
+ <table class="table table-sm" style="max-width:520px"><thead><tr><th>Skor kebutuhan</th><th>Arti</th></tr></thead>
+  <tr><td>9 (7–9)</td><td>High: sangat dibutuhkan posisi ini</td></tr>
+  <tr><td>5 (4–6)</td><td>Medium: cukup dibutuhkan</td></tr>
+  <tr><td>1 (1–3)</td><td>Low: tidak terlalu dibutuhkan</td></tr></table>
+ <p class="note">Setelah mengubah skor, periksa nilai CR di halaman Perhitungan AHP.</p>
+</section>
+{% endif %}
+
+{% if user %}<section id="ahp_view">
+ <h2>Perhitungan AHP</h2>
+ <p><b>Fungsi:</b> menampilkan bagaimana bobot kriteria tiap posisi diperoleh, untuk validasi akademik.</p>
+ <ul>
+  <li><b>Struktur hierarki:</b> Tujuan → Kriteria → Alternatif posisi.</li>
+  <li><b>Tab posisi:</b> pilih Goalkeeper, Fixo/Anchor, Ala/Flank, atau Pivot.</li>
+  <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b> untuk melihat 8 langkah dengan angka nyata. Pilih <i>Kriteria i</i> dan <i>Kriteria j</i> untuk contoh pasangan lain. Klik <b>Sembunyikan</b> untuk menutup.</li>
+  <li><b>Bobot:</b> skor, kategori, dan bobot tiap kriteria, beserta λmax, CI, RI, CR, dan status konsistensi.</li>
+  <li><b>Grafik perbandingan bobot</b> antar posisi.</li>
+  <li><b>Matriks perbandingan berpasangan, matriks ternormalisasi, dan uji konsistensi.</b></li>
+ </ul>
+ <p><b>Export PDF / Excel</b> mengunduh laporan lengkap keempat posisi, termasuk contoh perhitungan.</p>
+</section>{% endif %}
+
+{% if coach %}
+<section id="topsis_view">
+ <h2>Perhitungan TOPSIS <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p><b>Fungsi:</b> menampilkan langkah TOPSIS untuk satu posisi, dengan alternatif = semua pemain aktif.</p>
+ <ul>
+  <li><b>Tab posisi:</b> pilih posisi yang ingin dihitung.</li>
+  <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b> untuk 7 langkah dengan angka nyata. Pilih <i>pemain</i> dan <i>kriteria</i> untuk contoh lain.</li>
+  <li><b>Hasil ranking:</b> pemain diurutkan dari Cᵢ tertinggi untuk posisi ini.</li>
+  <li><b>Langkah 1–5:</b> bobot AHP, matriks keputusan X, matriks ternormalisasi R, matriks terbobot V dengan A⁺/A⁻, serta tabel D⁺, D⁻, Cᵢ, dan rank.</li>
+ </ul>
+ <p><b>Export PDF / Excel</b> mengunduh laporan lengkap keempat posisi beserta ringkasan rekomendasi semua pemain.</p>
+</section>
+{% endif %}
+
+{% if user %}<section id="results">
+ <h2>Riwayat Hasil</h2>
+ <p><b>Fungsi:</b> daftar hasil perhitungan yang disimpan pelatih{{ ' untuk Anda' if not coach }}. Klik <b>detail</b> untuk membuka snapshot: posisi terbaik, ranking, kesiapan, dan daftar training.</p>
+ <p class="note">Snapshot tidak berubah walaupun skill atau kriteria diubah kemudian, sehingga bisa dipakai untuk melihat perkembangan pemain dari waktu ke waktu.</p>
+</section>{% endif %}
+
+{% if coach %}
+<section id="logs">
+ <h2>Log Aktivitas <span class="badge bg-success role-tag">pelatih</span></h2>
+ <p><b>Fungsi:</b> catatan semua aktivitas: siapa, kapan, dan apa yang dilakukan.</p>
+ <table class="table table-sm" style="max-width:640px"><thead><tr><th>Kategori</th><th>Contoh aktivitas</th></tr></thead>
+  <tr><td>input</td><td>Tambah/ubah/arsip pemain, perubahan skill, perubahan kriteria</td></tr>
+  <tr><td>perhitungan</td><td>Membuka analisis pemain, export laporan AHP/TOPSIS</td></tr>
+  <tr><td>rekomendasi</td><td>Simpan hasil &amp; rekomendasi, export hasil pemain</td></tr>
+  <tr><td>akses</td><td>Login, logout, pembuatan akun, reset password</td></tr></table>
+ <p>Klik tombol kategori untuk menyaring. <b>Export CSV</b> mengunduh log sesuai saringan. Waktu tercatat dalam UTC.</p>
+</section>
+
+{% if is_super %}
+<section id="users">
+ <h2>Akun &amp; Approval <span class="badge bg-dark role-tag">super admin</span></h2>
+ <h3>Menyetujui pendaftaran</h3>
+ <ol>
+  <li>Buka menu <b>Akun</b>. Angka kuning di menu menunjukkan jumlah pendaftaran yang menunggu.</li>
+  <li>Di tabel <b>Menunggu approval</b>, baca keterangan pendaftar.</li>
+  <li>Pilih role yang disetujui. Untuk role Pemain, pilih data pemain yang ditautkan (wajib). Jika data pemainnya belum ada, tambahkan dulu di menu Pemain.</li>
+  <li>Klik <b>Setujui</b>, atau <b>Tolak</b> jika pendaftaran tidak valid.</li>
+ </ol>
+ <h3>Mengubah password</h3>
+ <p>Ketik password baru di baris akun lalu klik <b>Simpan</b>. Password baru ditampilkan satu kali di notifikasi agar bisa disampaikan ke pemilik akun. Password lama tidak bisa dilihat karena disimpan dalam bentuk hash (terenkripsi satu arah).</p>
+ <h3>Membuat akun langsung</h3>
+ <p>Gunakan form <b>Buat akun langsung</b> untuk membuat akun aktif tanpa proses approval.</p>
+</section>
+{% endif %}
+{% endif %}
+
+<section id="faq">
+ <h2>Tanya jawab</h2>
+ <h3>Mengapa posisi terbaik berbeda dari posisi terdaftar?</h3>
+ <p>Rekomendasi murni berdasarkan skill saat ini. Perbedaan ini justru informasi bagi pelatih, misalnya pemain Anchor dengan shooting dan strength tinggi yang lebih cocok sebagai Pivot.</p>
+ <h3>Mengapa nilai Cᵢ berubah padahal skill pemain tidak diubah?</h3>
+ <p>TOPSIS membandingkan pemain dengan pemain aktif lain. Menambah, mengubah, atau mengarsipkan pemain lain bisa menggeser nilai Cᵢ.</p>
+ <h3>Apa arti kesiapan posisi target?</h3>
+ <p>Persentase seberapa dekat skill pemain dengan target posisi, dengan bobot AHP. 100% berarti semua skill sudah memenuhi target.</p>
+ <h3>Bagaimana jika CR lebih dari 0,1?</h3>
+ <p>Matriks dianggap tidak konsisten. Kurangi skor ekstrem yang bertentangan di halaman Kriteria, lalu cek ulang.</p>
+</section>
+ </div>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Ubah Pemain ' ~ player.code if player else 'Tambah Pemain' }}</h1>
+<form method="post" class="card"><div class="card-body">
+ <div class="row g-3">
+  <div class="col-md-2"><label class="form-label" for="code">Kode</label><input class="form-control" id="code" name="code" required value="{{ player.code if player else '' }}"></div>
+  <div class="col-md-4"><label class="form-label" for="name">Nama</label><input class="form-control" id="name" name="name" required value="{{ player.name if player else '' }}"></div>
+  <div class="col-md-3"><label class="form-label" for="position">Posisi utama</label>
+   <select class="form-select" id="position" name="position">{% for p in POSITIONS %}<option value="{{ loop.index0 }}" {{ 'selected' if player and player.position == loop.index0 }}>{{ p }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="desired_position">Posisi diinginkan</label>
+   <select class="form-select" id="desired_position" name="desired_position">{% for p in POSITIONS %}<option value="{{ loop.index0 }}" {{ 'selected' if player and player.desired_position == loop.index0 }}>{{ p }}</option>{% endfor %}</select></div>
+  <div class="col-md-6"><span class="form-label d-block">Posisi alternatif (bisa lebih dari satu)</span>
+   {% set alts = (player.alt_positions.split(',') if player and player.alt_positions else []) %}
+   {% for p in POSITIONS %}<div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="alt_positions" value="{{ loop.index0 }}" id="alt{{ loop.index0 }}" {{ 'checked' if loop.index0|string in alts }}><label class="form-check-label" for="alt{{ loop.index0 }}">{{ p }}</label></div>{% endfor %}</div>
+  <div class="col-md-3"><label class="form-label" for="assessment">Sumber penilaian</label>
+   <select class="form-select" id="assessment" name="assessment">{% for a in ['Tes objektif', 'Self-assessment', 'Observasi pelatih'] %}<option {{ 'selected' if player and player.assessment == a }}>{{ a }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="notes">Catatan</label><input class="form-control" id="notes" name="notes" value="{{ player.notes if player else '' }}"></div>
+ </div>
+ <h2 class="h4 mt-4">Skill (skala 1–10)</h2>
+ <div class="row g-3">
+  {% for c in criteria %}<div class="col-6 col-md-3 col-lg-2">
+   <label class="form-label small" for="skill_{{ c.id }}">{{ c.name }}</label>
+   <input class="form-control" type="number" min="1" max="10" id="skill_{{ c.id }}" name="skill_{{ c.id }}" value="{{ skills.get(c.id, 5) }}" required></div>{% endfor %}
+ </div>
+ <div class="mt-4"><button class="btn btn-court">Simpan</button> <a class="btn btn-outline-secondary" href="{{ url_for('players') }}">Batal</a></div>
+</div></form>
+{% endblock %}

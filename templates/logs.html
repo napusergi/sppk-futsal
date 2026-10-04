@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+ <h1 class="mb-0">Log Aktivitas</h1>
+ <div class="d-flex gap-2">
+  {% for c, label in [('', 'Semua'), ('input', 'Input'), ('perhitungan', 'Perhitungan'), ('rekomendasi', 'Rekomendasi'), ('akses', 'Akses')] %}
+  <a class="btn btn-sm {{ 'btn-court' if cat == c else 'btn-outline-secondary' }}" href="{{ url_for('logs', cat=c) }}">{{ label }}</a>{% endfor %}
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('logs', cat=cat, export='csv') }}">Export CSV</a>
+ </div>
+</div>
+<div class="card"><div class="card-body table-responsive">
+<table class="table table-sm">
+ <thead><tr><th>Waktu (UTC)</th><th>User</th><th>Role</th><th>Kategori</th><th>Aktivitas</th></tr></thead>
+ {% for l in rows %}<tr><td class="small font-monospace">{{ l.created_at }}</td><td>{{ l.username }}</td><td>{{ l.role }}</td><td><span class="badge bg-secondary">{{ l.category }}</span></td><td style="white-space:normal">{{ l.action }}</td></tr>{% endfor %}
+</table></div></div>
+{% endblock %}

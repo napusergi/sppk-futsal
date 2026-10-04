@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Akun Pengguna</h1>
+
+<div class="card mb-4" style="border-left:4px solid var(--ball)"><div class="card-body">
+ <h2 class="h4">Menunggu approval {% if pending %}<span class="badge bg-warning text-dark">{{ pending|length }}</span>{% endif %}</h2>
+ {% if pending %}
+ <div class="table-responsive"><table class="table table-sm align-middle">
+  <thead><tr><th>Didaftarkan</th><th>Username</th><th>Nama</th><th>Daftar sebagai</th><th>Keterangan</th><th>Setujui sebagai</th><th></th></tr></thead>
+  {% for u in pending %}<tr>
+   <td class="small">{{ u.created_at }}</td><td><b>{{ u.username }}</b></td><td>{{ u.full_name }}</td><td>{{ ROLE_LABEL[u.requested_role] }}</td>
+   <td class="small" style="white-space:normal;max-width:240px">{{ u.note or '–' }}</td>
+   <td><form method="post" id="ap{{ u.id }}" class="d-flex gap-1"><input type="hidden" name="action" value="approve"><input type="hidden" name="id" value="{{ u.id }}">
+     <select class="form-select form-select-sm" name="role" id="apr{{ u.id }}" style="width:auto">{% for r in ['pemain', 'pelatih', 'superadmin'] %}<option value="{{ r }}" {{ 'selected' if r == u.requested_role }}>{{ ROLE_LABEL[r] }}</option>{% endfor %}</select>
+     <select class="form-select form-select-sm" name="player_id" id="app{{ u.id }}" style="width:auto"><option value="">Tautkan pemain…</option>{% for p in players %}<option value="{{ p.id }}">{{ p.code }} · {{ p.name }}</option>{% endfor %}</select>
+   </form></td>
+   <td class="text-nowrap"><button form="ap{{ u.id }}" class="btn btn-sm btn-court">Setujui</button>
+    <form method="post" class="d-inline"><input type="hidden" name="action" value="reject"><input type="hidden" name="id" value="{{ u.id }}"><button class="btn btn-sm btn-outline-danger">Tolak</button></form></td>
+  </tr>{% endfor %}
+ </table></div>
+ <p class="note mb-0">Akun pemain wajib ditautkan ke data pemain agar hanya melihat hasil miliknya. Jika datanya belum ada, tambahkan dulu di menu Pemain.</p>
+ {% else %}<p class="text-muted mb-0">Tidak ada pendaftaran yang menunggu.</p>{% endif %}
+</div></div>
+
+<div class="row g-3">
+ <div class="col-lg-8"><div class="card"><div class="card-body table-responsive">
+  <h2 class="h4">Daftar akun</h2>
+  <table class="table table-sm align-middle">
+   <thead><tr><th>Username</th><th>Nama</th><th>Role</th><th>Pemain</th><th>Status</th><th>Ubah password</th></tr></thead>
+   {% for u in rows %}<tr>
+    <td>{{ u.username }}</td><td>{{ u.full_name }}</td>
+    <td><span class="badge {{ {'superadmin': 'bg-dark', 'pelatih': 'bg-success'}.get(u.role, 'bg-secondary') }}">{{ ROLE_LABEL[u.role] }}</span></td>
+    <td>{{ u.code or '–' }}</td>
+    <td>{% if u.status == 'active' %}<span class="badge bg-success-subtle text-success-emphasis">aktif</span>{% else %}<span class="badge bg-danger-subtle text-danger-emphasis">ditolak</span>{% endif %}</td>
+    <td><form method="post" class="d-flex gap-1"><input type="hidden" name="action" value="password"><input type="hidden" name="id" value="{{ u.id }}">
+     <input class="form-control form-control-sm" type="text" name="password" id="pw{{ u.id }}" placeholder="password baru" required minlength="6" autocomplete="off" style="min-width:130px">
+     <button class="btn btn-sm btn-outline-secondary">Simpan</button></form></td>
+   </tr>{% endfor %}
+  </table>
+  <p class="note mb-0">Password disimpan terenkripsi (hash), sehingga password lama tidak bisa dilihat siapa pun. Password baru yang Anda tetapkan ditampilkan satu kali setelah disimpan agar bisa disampaikan ke pemilik akun.</p>
+ </div></div></div>
+ <div class="col-lg-4"><div class="card"><div class="card-body">
+  <h2 class="h4">Buat akun langsung</h2>
+  <form method="post"><input type="hidden" name="action" value="add">
+   <div class="mb-2"><label class="form-label" for="un">Username</label><input class="form-control" id="un" name="username" required></div>
+   <div class="mb-2"><label class="form-label" for="fn">Nama</label><input class="form-control" id="fn" name="full_name"></div>
+   <div class="mb-2"><label class="form-label" for="pw">Password</label><input class="form-control" type="text" id="pw" name="password" required minlength="6" autocomplete="off"></div>
+   <div class="mb-2"><label class="form-label" for="rl">Role</label><select class="form-select" id="rl" name="role">{% for r in ['pemain', 'pelatih', 'superadmin'] %}<option value="{{ r }}">{{ ROLE_LABEL[r] }}</option>{% endfor %}</select></div>
+   <div class="mb-3"><label class="form-label" for="pl">Tautkan ke pemain</label><select class="form-select" id="pl" name="player_id"><option value="">–</option>{% for p in players %}<option value="{{ p.id }}">{{ p.code }} · {{ p.name }}</option>{% endfor %}</select></div>
+   <button class="btn btn-court">Buat akun</button>
+  </form>
+ </div></div></div>
+</div>
+{% endblock %}

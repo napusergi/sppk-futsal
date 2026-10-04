@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="py-4 mb-4 border-bottom">
+ <div class="row align-items-center g-4">
+  <div class="col-lg-7">
+   <div class="text-uppercase small fw-semibold" style="color:var(--ball);letter-spacing:.08em">Sistem Pendukung Keputusan · AHP + TOPSIS</div>
+   <h1 class="display-5 fw-bold mb-3" style="text-wrap:balance">Temukan posisi futsal terbaik dan latihan yang dibutuhkan untuk mencapainya</h1>
+   <p class="lead text-muted">Aplikasi ini menilai skill pemain, menentukan posisi yang paling sesuai (Goalkeeper, Fixo/Anchor, Ala/Flank, Pivot), lalu memberi prioritas upgrade skill dan rekomendasi training menuju posisi yang diinginkan.</p>
+   {% if user %}
+   <a class="btn btn-court btn-lg" href="{{ url_for('dashboard') if is_staff else (url_for('player_detail', pid=user.player_id) if user.player_id else url_for('results')) }}">Buka aplikasi</a>
+   {% else %}
+   <a class="btn btn-court btn-lg me-2" href="{{ url_for('login') }}">Login</a>
+   <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('register') }}">Buat akun</a>
+   <p class="small text-muted mt-2 mb-0">Akun baru aktif setelah disetujui Super Admin.</p>
+   {% endif %}
+  </div>
+  <div class="col-lg-5">
+   <div class="card"><div class="card-body">
+    <div class="row text-center g-2">
+     <div class="col-4"><div class="big">{{ n_players }}</div><div class="small text-muted">pemain aktif</div></div>
+     <div class="col-4"><div class="big">{{ criteria|length }}</div><div class="small text-muted">kriteria skill</div></div>
+     <div class="col-4"><div class="big">{{ multi }}</div><div class="small text-muted">pemain multi-posisi</div></div>
+    </div>
+    <div style="position:relative;height:200px" class="mt-3"><canvas id="perPos" aria-label="Sebaran pemain per posisi"></canvas></div>
+   </div></div>
+  </div>
+ </div>
+</section>
+
+<h2 class="mb-3">Cara kerja</h2>
+<div class="row g-3 mb-4">
+ {% for t, d in [
+  ('Penilaian skill', 'Pelatih menilai ' ~ criteria|length ~ ' skill pemain pada skala 1–10, dari tes objektif, self-assessment, atau observasi.'),
+  ('Bobot AHP', 'Pelatih menetapkan kebutuhan skill tiap posisi (High/Medium/Low). AHP mengubahnya menjadi bobot kriteria yang teruji konsistensinya.'),
+  ('Ranking TOPSIS', 'TOPSIS membandingkan skill pemain dengan bobot tiap posisi dan menghasilkan nilai kecocokan Cᵢ (0–1).'),
+  ('Gap & training', 'Selisih skill terhadap target posisi diurutkan menurut bobot, lalu dipetakan ke latihan yang spesifik.')] %}
+ <div class="col-sm-6 col-lg-3"><div class="card h-100"><div class="card-body">
+  <div class="small fw-semibold" style="color:var(--ball)">Langkah {{ loop.index }}</div>
+  <h3 class="h5">{{ t }}</h3><p class="small text-muted mb-0">{{ d }}</p>
+ </div></div></div>
+ {% endfor %}
+</div>
+
+<h2 class="mb-3">Posisi &amp; skill yang paling menentukan</h2>
+<div class="row g-3 mb-4">
+ {% for pos in POSITIONS %}
+ <div class="col-sm-6 col-lg-3"><div class="card h-100"><div class="card-body">
+  <h3 class="h5 mb-1">{{ pos }}</h3>
+  <div class="small text-muted mb-2">{{ per_pos[loop.index0] }} pemain · CR {{ ahps[loop.index0].cr|f(3) }}</div>
+  {% set mx = top[loop.index0][0][1] %}
+  {% for name, w in top[loop.index0] %}
+  <div class="d-flex justify-content-between small"><span>{{ name }}</span><span class="num">{{ (w*100)|round(1) }}%</span></div>
+  <div class="bar mb-2"><i style="width:{{ w/mx*100 }}%"></i></div>
+  {% endfor %}
+ </div></div></div>
+ {% endfor %}
+</div>
+
+<div class="row g-3">
+ <div class="col-lg-7"><div class="card h-100"><div class="card-body">
+  <h2 class="h4">Kriteria penilaian</h2>
+  <div class="d-flex flex-wrap gap-2">{% for c in criteria %}<span class="badge rounded-pill text-bg-light border fw-normal fs-6">{{ c.name }}</span>{% endfor %}</div>
+ </div></div></div>
+ <div class="col-lg-5"><div class="card h-100"><div class="card-body">
+  <h2 class="h4">Akses pengguna</h2>
+  <ul class="small mb-0">
+   <li><b>Pemain:</b> melihat data, posisi terbaik, gap skill, dan rekomendasi training miliknya.</li>
+   <li><b>Pelatih:</b> mengelola pemain, kriteria, perhitungan, hasil, dan log.</li>
+   <li><b>Super Admin:</b> semua akses pelatih ditambah persetujuan akun baru dan pengelolaan password.</li>
+  </ul>
+ </div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+new Chart(document.getElementById("perPos"),{type:"bar",
+ data:{labels:{{ POSITIONS|tojson }},datasets:[{label:"Pemain",data:{{ per_pos|tojson }},backgroundColor:"#0f6b57"}]},
+ options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+</script>
+{% endblock %}

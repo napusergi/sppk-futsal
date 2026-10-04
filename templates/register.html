@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-7 col-lg-5">
+ <div class="card shadow-sm"><div class="card-body p-4">
+  <h1 class="h2 mb-1">Buat akun</h1>
+  <p class="text-muted small">Pendaftaran akan diperiksa Super Admin. Anda bisa login setelah akun disetujui.</p>
+  <form method="post">
+   <div class="mb-3"><label class="form-label" for="full_name">Nama lengkap</label><input class="form-control" id="full_name" name="full_name" required value="{{ request.form.full_name }}"></div>
+   <div class="mb-3"><label class="form-label" for="username">Username</label><input class="form-control" id="username" name="username" required pattern="[A-Za-z0-9]+" value="{{ request.form.username }}">
+    <div class="form-text">Huruf dan angka saja, tanpa spasi.</div></div>
+   <div class="row g-2 mb-3">
+    <div class="col"><label class="form-label" for="password">Password</label><input class="form-control" type="password" id="password" name="password" required minlength="6"></div>
+    <div class="col"><label class="form-label" for="password2">Ulangi password</label><input class="form-control" type="password" id="password2" name="password2" required minlength="6"></div>
+   </div>
+   <div class="mb-3"><label class="form-label" for="requested_role">Daftar sebagai</label>
+    <select class="form-select" id="requested_role" name="requested_role"><option value="pemain">Pemain</option><option value="pelatih">Pelatih</option></select></div>
+   <div class="mb-3"><label class="form-label" for="note">Keterangan untuk Super Admin</label>
+    <textarea class="form-control" id="note" name="note" rows="2" placeholder="Contoh: pemain tim U-21, posisi Ala, kode pemain AL1">{{ request.form.note }}</textarea></div>
+   <button class="btn btn-court w-100">Kirim pendaftaran</button>
+  </form>
+  <p class="small mt-3 mb-0">Sudah punya akun? <a href="{{ url_for('login') }}">Login</a></p>
+ </div></div>
+</div></div>
+{% endblock %}

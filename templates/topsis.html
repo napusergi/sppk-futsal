@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_example.html" import example_block %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+ <h1 class="mb-0">Perhitungan TOPSIS</h1>
+ <div><a class="btn btn-sm btn-outline-danger" href="{{ url_for('export_topsis_report', fmt='pdf') }}" target="_blank">Export PDF</a>
+ <a class="btn btn-sm btn-court" href="{{ url_for('export_topsis_report', fmt='xlsx') }}">Export Excel</a></div>
+</div>
+<p class="note">Untuk tiap posisi, alternatif = pemain aktif, bobot = hasil AHP posisi tersebut, semua kriteria bersifat benefit. Cᵢ = D⁻ / (D⁺ + D⁻). Ranking posisi seorang pemain diperoleh dari perbandingan Cᵢ-nya di keempat posisi.</p>
+<ul class="nav nav-tabs mb-3">{% for p in POSITIONS %}<li class="nav-item"><a class="nav-link {{ 'active' if pos == loop.index0 }}" href="{{ url_for('topsis_view', pos=loop.index0) }}">{{ p }}</a></li>{% endfor %}</ul>
+{% macro mtable(title, data, d=4) %}
+<h2 class="h5 mt-3">{{ title }}</h2>
+<div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
+ <thead><tr><th></th>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}</tr></thead>
+ {% for row in data %}<tr><th>{{ players[loop.index0].code }}</th>{% for v in row %}<td class="num">{{ v if d == 0 else v|f(d) }}</td>{% endfor %}</tr>{% endfor %}
+ {{ caller() if caller }}
+</table></div>
+{% endmacro %}
+{% call example_block("Rumus & contoh perhitungan TOPSIS — " ~ POSITIONS[pos], example) %}
+ <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="pos" value="{{ pos }}"><input type="hidden" name="ex" value="1">
+  <div class="col-auto"><label class="form-label small" for="ep">Pemain</label><select class="form-select form-select-sm" id="ep" name="p" onchange="this.form.submit()">{% for p in players %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ep }}>{{ p.code }} · {{ p.name }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><label class="form-label small" for="ec">Kriteria</label><select class="form-select form-select-sm" id="ec" name="c" onchange="this.form.submit()">{% for c in criteria %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == ec }}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="col small text-muted">Langkah 1–4 memakai kriteria terpilih; langkah 5–7 mencakup semua kriteria.</div>
+ </form>
+{% endcall %}
+<div class="card mb-3"><div class="card-body">
+ <h2 class="h4">Hasil ranking: {{ POSITIONS[pos] }}</h2>
+ <div class="table-responsive"><table class="table table-sm align-middle">
+  <thead><tr><th>Rank</th><th>Pemain</th><th>Posisi terdaftar</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th></th></tr></thead>
+  {% for i in order %}<tr><td>{{ loop.index }}</td><td><a href="{{ url_for('player_detail', pid=players[i].id, target=pos) }}">{{ players[i].code }}</a> <span class="small text-muted">{{ players[i].name }}</span></td>
+   <td class="small">{{ POSITIONS[players[i].position] }}</td><td class="num">{{ res[i].d_plus|f(4) }}</td><td class="num">{{ res[i].d_minus|f(4) }}</td><td class="num"><b>{{ res[i].ci|f(4) }}</b></td><td><div class="bar"><i style="width:{{ res[i].ci*100 }}%"></i></div></td></tr>{% endfor %}
+ </table></div>
+</div></div>
+<div class="card"><div class="card-body">
+ <h2 class="h5">Bobot AHP</h2>
+ <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small"><tr>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}</tr><tr>{% for x in w %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr></table></div>
+ {{ mtable("1. Matriks keputusan X", players|map(attribute='skills')|list, 0) }}
+ {{ mtable("2. Matriks ternormalisasi R  (rᵢⱼ = xᵢⱼ / √Σx²)", norm) }}
+ {% call mtable("3. Matriks terbobot V  (vᵢⱼ = wⱼ · rᵢⱼ)", v) %}
+  <tr class="table-success"><th>A⁺</th>{% for x in a_pos %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr>
+  <tr class="table-danger"><th>A⁻</th>{% for x in a_neg %}<td class="num">{{ x|f(4) }}</td>{% endfor %}</tr>
+ {% endcall %}
+ <h2 class="h5 mt-3">4. Jarak solusi ideal &amp; 5. Nilai preferensi</h2>
+ <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small" style="max-width:620px">
+  <thead><tr><th>Pemain</th><th class="num">D⁺ = √Σ(v − A⁺)²</th><th class="num">D⁻ = √Σ(v − A⁻)²</th><th class="num">Cᵢ</th><th class="num">Rank</th></tr></thead>
+  {% for r in res %}<tr><th>{{ players[loop.index0].code }}</th><td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f(4) }}</td><td class="num">{{ st.rank[loop.index0] }}</td></tr>{% endfor %}
+ </table></div>
+</div></div>
+{% endblock %}
