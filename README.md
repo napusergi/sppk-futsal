@@ -5,13 +5,20 @@ dan memberi rekomendasi training menuju posisi yang diinginkan.
 
 ## Menjalankan
 
+**Cara termudah (Windows):** klik dua kali **`Jalankan Aplikasi.bat`**.
+Browser terbuka otomatis di http://localhost:5000. Biarkan jendela hitam tetap terbuka selama aplikasi dipakai;
+tutup jendela itu untuk menghentikan aplikasi. Saat pertama kali, file ini memasang library yang dibutuhkan (perlu internet).
+
+Syarat: Python 3 terpasang dengan opsi *Add python.exe to PATH* (https://www.python.org/downloads/).
+
+Untuk mengembalikan semua data ke kondisi awal, klik dua kali **`Reset Data Awal.bat`** (data lama dicadangkan otomatis).
+
+Cara manual lewat terminal:
+
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
-
-Buka http://localhost:5000. Database `sppk_futsal.db` dibuat otomatis beserta data dummy.
-Untuk mengembalikan ke data awal: `python app.py --reset`.
 
 ## Akun uji coba
 
