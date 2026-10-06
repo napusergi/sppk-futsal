@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Rekomendasi Training</h1>
+<p class="note">Daftar latihan untuk setiap kriteria (skill). Saat seorang pemain memiliki gap pada suatu kriteria, semua latihan kriteria itu muncul di rekomendasinya, diurutkan dari level Dasar ke Lanjut. Setiap kriteria minimal memiliki 1 latihan.</p>
+<div class="card mb-4"><div class="card-body table-responsive">
+ <table class="table table-sm align-middle dt" id="tbl-training" data-per-page="25">
+  <thead><tr><th>Kriteria</th><th>Nama latihan</th><th>Deskripsi / cara</th><th>Durasi</th><th>Level</th><th></th></tr></thead>
+  {% for c in criteria %}{% for t in c.trainings %}<tr {{ 'class=table-active' if sel == c.id|string }}>
+   <td><form id="tf{{ t.id }}" method="post"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{ t.id }}"></form>
+    <select form="tf{{ t.id }}" class="form-select form-select-sm" name="criterion_id" id="tc{{ t.id }}" style="min-width:150px">{% for k in criteria %}<option value="{{ k.id }}" {{ 'selected' if k.id == c.id }}>{{ k.name }}</option>{% endfor %}</select></td>
+   <td><input form="tf{{ t.id }}" class="form-control form-control-sm" name="name" id="tn{{ t.id }}" value="{{ t.name }}" required style="min-width:180px"></td>
+   <td><input form="tf{{ t.id }}" class="form-control form-control-sm" name="description" id="td{{ t.id }}" value="{{ t.description }}" placeholder="Opsional" style="min-width:240px"></td>
+   <td><input form="tf{{ t.id }}" class="form-control form-control-sm" name="duration" id="tdu{{ t.id }}" value="{{ t.duration }}" placeholder="mis. 20 menit" style="width:110px"></td>
+   <td><select form="tf{{ t.id }}" class="form-select form-select-sm" name="level" id="tl{{ t.id }}" style="width:auto">{% for l in levels %}<option {{ 'selected' if l == t.level }}>{{ l }}</option>{% endfor %}</select></td>
+   <td class="text-nowrap"><button form="tf{{ t.id }}" class="btn btn-sm btn-court">Simpan</button>
+    <form method="post" class="d-inline" onsubmit="return confirm('Hapus latihan {{ t.name }}?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ t.id }}">
+     <button class="btn btn-sm btn-outline-danger" {% if c.trainings|length <= 1 %}disabled title="Minimal 1 latihan per kriteria"{% endif %}>Hapus</button></form></td>
+  </tr>{% endfor %}{% endfor %}
+ </table>
+</div></div>
+<div class="card"><div class="card-body">
+ <h2 class="h4">Tambah latihan</h2>
+ <form method="post" class="row g-2 align-items-end"><input type="hidden" name="action" value="add">
+  <div class="col-md-2"><label class="form-label" for="ac">Kriteria</label><select class="form-select" id="ac" name="criterion_id">{% for k in criteria %}<option value="{{ k.id }}" {{ 'selected' if sel == k.id|string }}>{{ k.name }}</option>{% endfor %}</select></div>
+  <div class="col-md-3"><label class="form-label" for="an">Nama latihan</label><input class="form-control" id="an" name="name" required placeholder="mis. Rondo 4v2"></div>
+  <div class="col-md-3"><label class="form-label" for="ad">Deskripsi / cara</label><input class="form-control" id="ad" name="description" placeholder="Opsional"></div>
+  <div class="col-md-2"><label class="form-label" for="adu">Durasi</label><input class="form-control" id="adu" name="duration" placeholder="mis. 20 menit"></div>
+  <div class="col-md-1"><label class="form-label" for="al">Level</label><select class="form-select" id="al" name="level">{% for l in levels %}<option {{ 'selected' if l == 'Menengah' }}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-md-1"><button class="btn btn-court w-100">Tambah</button></div>
+ </form>
+</div></div>
+{% endblock %}

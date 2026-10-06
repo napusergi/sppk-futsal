@@ -12,7 +12,7 @@
  <li class="nav-item"><a class="nav-link {{ 'active' if view == 'posisi' }}" href="{{ url_for('topsis_view', view='posisi') }}">Ranking pemain per posisi <span class="badge bg-light text-dark border">pembanding</span></a></li>
 </ul>
 {% if view == 'pemain' %}
-<p class="note">Satu perhitungan TOPSIS untuk setiap pemain. <b>Alternatif = 4 posisi</b>, <b>matriks keputusan = bobot AHP tiap posisi</b> (seberapa besar posisi menuntut tiap skill), <b>bobot kriteria = profil skill pemain</b> (sⱼ / Σs). Semua kriteria benefit. Posisi dengan Cᵢ tertinggi menjadi rekomendasi: posisi yang paling banyak menuntut kekuatan pemain tersebut.</p>
+<p class="note">Satu perhitungan TOPSIS untuk setiap pemain. <b>Alternatif = semua posisi</b>, <b>matriks keputusan = bobot AHP tiap posisi</b> (seberapa besar posisi menuntut tiap skill), <b>bobot kriteria = profil skill pemain</b> (sⱼ / Σs). Semua kriteria benefit. Posisi dengan Cᵢ tertinggi menjadi rekomendasi: posisi yang paling banyak menuntut kekuatan pemain tersebut.</p>
 <div class="card mb-3"><div class="card-body">
  <h2 class="h4">Ringkasan: Cᵢ setiap posisi untuk setiap pemain</h2>
  <div class="table-responsive"><table class="table table-sm table-hover align-middle dt" id="tbl-ringkasan">

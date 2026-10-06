@@ -41,7 +41,7 @@
    <h2 class="h4 mb-0">Perhitungan TOPSIS posisi untuk {{ p.code }}</h2>
    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#ptSteps" aria-expanded="false" aria-controls="ptSteps">Tampilkan / sembunyikan</button>
   </div>
-  <p class="small text-muted mb-0 mt-1">Alternatif = 4 posisi; matriks keputusan = bobot AHP tiap posisi; bobot kriteria = profil skill pemain.</p>
+  <p class="small text-muted mb-0 mt-1">Alternatif = semua posisi; matriks keputusan = bobot AHP tiap posisi; bobot kriteria = profil skill pemain.</p>
   <div class="collapse mt-3" id="ptSteps">{{ position_steps(pt, criteria) }}</div>
  </div></div></div>
  <div class="col-12"><div class="card"><div class="card-body">
@@ -60,7 +60,10 @@
   <h2 class="h4">Rekomendasi training</h2>
   {% if res.recommendations %}<ol class="mb-0">{% for g in res.recommendations %}
    <li class="mb-2"><b>{{ g.criterion }}</b> <span class="badge {{ 'bg-danger' if loop.index <= 3 else 'bg-secondary' }}">{{ 'mendesak' if loop.index <= 3 else 'lanjutan' }}</span>
-    <span class="text-muted small">gap {{ g.gap }} · prioritas {{ g.priority|f }}</span><br>{{ g.training }}</li>{% endfor %}</ol>
+    <span class="text-muted small">gap {{ g.gap }} · prioritas {{ g.priority|f }}</span>
+    {% if g.trainings %}<ul class="small mb-0 mt-1">{% for t in g.trainings %}
+     <li>{{ t.name }}{% if t.duration %} · {{ t.duration }}{% endif %} <span class="badge text-bg-light border">{{ t.level }}</span>{% if t.description %}<br><span class="text-muted">{{ t.description }}</span>{% endif %}</li>{% endfor %}</ul>
+    {% else %}<br>{{ g.training }}{% endif %}</li>{% endfor %}</ol>
   {% else %}<p class="mb-0">Semua skill sudah memenuhi kebutuhan posisi {{ res.target_name }}. Pertahankan dengan latihan rutin.</p>{% endif %}
  </div></div></div>
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">

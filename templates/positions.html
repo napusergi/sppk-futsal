@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Posisi</h1>
+<p class="note">Posisi menjadi alternatif pada TOPSIS. Setiap posisi memiliki skor kebutuhan per kriteria (diatur di <a href="{{ url_for('criteria_view') }}">Kriteria &amp; Skor Kebutuhan</a>) dan matriks AHP sendiri (di <a href="{{ url_for('ahp_view') }}">Perhitungan AHP</a>). Minimal 2 posisi.</p>
+<div class="card mb-4"><div class="card-body table-responsive">
+ <table class="table table-sm align-middle dt" id="tbl-posisi" data-per-page="10">
+  <thead><tr><th>No</th><th>Nama posisi</th><th>Deskripsi</th><th class="num">Pemain utama</th><th class="num">Alternatif</th><th>Matriks AHP</th><th class="num">CR</th><th>Skill terpenting</th><th></th></tr></thead>
+  {% for r in rows %}<tr>
+   <td class="num">{{ r.idx + 1 }}</td>
+   <td><form id="pf{{ r.idx }}" method="post"><input type="hidden" name="action" value="edit"><input type="hidden" name="idx" value="{{ r.idx }}"></form>
+    <input form="pf{{ r.idx }}" class="form-control form-control-sm" name="name" id="pn{{ r.idx }}" value="{{ r.name }}" required style="min-width:140px"></td>
+   <td style="min-width:260px"><input form="pf{{ r.idx }}" class="form-control form-control-sm" name="description" id="pd{{ r.idx }}" value="{{ r.description }}"></td>
+   <td class="num">{{ r.main }}</td><td class="num">{{ r.alt }}</td>
+   <td><a href="{{ url_for('ahp_view', pos=r.idx) }}" class="badge text-decoration-none {{ 'bg-success' if r.mode == 'manual' else 'bg-secondary' }}">{{ 'Manual' if r.mode == 'manual' else 'Otomatis' }}</a></td>
+   <td class="num">{{ r.cr|f(4) }} {% if not r.consistent %}<span class="badge bg-danger">!</span>{% endif %}</td>
+   <td class="small" style="white-space:normal;min-width:180px">{% for n, w in r.top %}{{ n }} <span class="text-muted">{{ (w*100)|round(1) }}%</span>{{ ', ' if not loop.last }}{% endfor %}</td>
+   <td class="text-nowrap"><button form="pf{{ r.idx }}" class="btn btn-sm btn-court">Simpan</button>
+    <form method="post" class="d-inline" onsubmit="return confirm('Hapus posisi {{ r.name }}? Skor kebutuhan dan matriks AHP posisi ini ikut terhapus.')">
+     <input type="hidden" name="action" value="delete"><input type="hidden" name="idx" value="{{ r.idx }}">
+     <button class="btn btn-sm btn-outline-danger" {% if r.used %}disabled title="Masih dipakai {{ r.used }} pemain/hasil"{% elif rows|length <= 2 %}disabled title="Minimal 2 posisi"{% endif %}>Hapus</button></form></td>
+  </tr>{% endfor %}
+ </table>
+ <p class="small text-muted mb-0">Tombol Hapus nonaktif jika posisi masih menjadi posisi utama/diinginkan pemain (termasuk arsip) atau tercatat di hasil tersimpan.</p>
+</div></div>
+<div class="card"><div class="card-body">
+ <h2 class="h4">Tambah posisi</h2>
+ <form method="post" class="row g-2 align-items-end"><input type="hidden" name="action" value="add">
+  <div class="col-md-3"><label class="form-label" for="nname">Nama posisi</label><input class="form-control" id="nname" name="name" required placeholder="mis. Universal"></div>
+  <div class="col-md-7"><label class="form-label" for="ndesc">Deskripsi</label><input class="form-control" id="ndesc" name="description" placeholder="Peran dan kemampuan utama posisi ini"></div>
+  <div class="col-md-2"><button class="btn btn-court w-100">Tambah</button></div>
+ </form>
+ <p class="note mt-3 mb-0">Posisi baru mendapat skor kebutuhan 5 (Medium) untuk semua kriteria. Langkah berikutnya: atur skornya di Kriteria &amp; Skor Kebutuhan, lalu isi atau periksa matriks AHP posisi tersebut.</p>
+</div></div>
+{% endblock %}

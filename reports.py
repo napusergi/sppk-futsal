@@ -42,6 +42,16 @@ def P(text, style):
 SOFT = colors.HexColor("#e1efea")
 
 
+def sheet_name(text, existing=()):
+    """Nama sheet Excel: tanpa karakter terlarang, maks 31 karakter, unik."""
+    base = "".join("-" if ch in '\\/:*?[]' else ch for ch in text)[:31]
+    name, k = base, 2
+    while name in existing:
+        name = f"{base[:28]}~{k}"
+        k += 1
+    return name
+
+
 def frac(v):
     return str(int(round(v))) if v >= 1 else f"1/{int(round(1 / v))}"
 
@@ -171,7 +181,7 @@ def topsis_pdf(criteria, profiles, players):
     pc = [p["code"] for p in players]
     names = [c["name"] for c in criteria]
     el = [P("Laporan Perhitungan TOPSIS — Kecocokan Posisi Pemain", S["h1"]),
-          P("Model hibrida AHP–TOPSIS. <b>Penentu rekomendasi:</b> satu TOPSIS per pemain dengan <b>alternatif = 4 posisi</b>, "
+          P("Model hibrida AHP–TOPSIS. <b>Penentu rekomendasi:</b> satu TOPSIS per pemain dengan <b>alternatif = semua posisi</b>, "
             "matriks keputusan x<sub>pj</sub> = bobot AHP kriteria j pada posisi p, bobot kriteria w<sub>j</sub> = s<sub>j</sub>/Σs "
             "(profil skill pemain), semua kriteria benefit. Langkah: r<sub>pj</sub> = x<sub>pj</sub>/√Σx<sub>pj</sub>²; "
             "v<sub>pj</sub> = w<sub>j</sub>·r<sub>pj</sub>; A⁺ = max v, A⁻ = min v; D⁺ = √Σ(v − A⁺)², D⁻ = √Σ(v − A⁻)²; "
@@ -194,12 +204,12 @@ def topsis_pdf(criteria, profiles, players):
                _table([[""] + cc, ["Skill s"] + pt["skills"], ["w"] + [f"{x:.4f}" for x in pt["w"]]]),
                P("Langkah 1. Matriks keputusan X (bobot AHP tiap posisi)", S["h3"]),
                _table([[""] + cc] + [[POSITIONS[i]] + [f"{v:.4f}" for v in r] for i, r in enumerate(pt["x"])] +
-                      [["√Σx²"] + [f"{d:.4f}" for d in pt["den"]]], hl_rows=(5,)),
+                      [["√Σx²"] + [f"{d:.4f}" for d in pt["den"]]], hl_rows=(len(POSITIONS) + 1,)),
                P("Langkah 2. Matriks ternormalisasi R", S["h3"]),
                _table([[""] + cc] + [[POSITIONS[i]] + [f"{v:.4f}" for v in r] for i, r in enumerate(pt["norm"])]),
                P("Langkah 3. Matriks terbobot V dan solusi ideal", S["h3"]),
                _table([[""] + cc] + [[POSITIONS[i]] + [f"{v:.4f}" for v in r] for i, r in enumerate(pt["v"])] +
-                      [["A⁺"] + [f"{v:.4f}" for v in pt["a_pos"]], ["A⁻"] + [f"{v:.4f}" for v in pt["a_neg"]]], hl_rows=(5, 6)),
+                      [["A⁺"] + [f"{v:.4f}" for v in pt["a_pos"]], ["A⁻"] + [f"{v:.4f}" for v in pt["a_neg"]]], hl_rows=(len(POSITIONS) + 1, len(POSITIONS) + 2)),
                P("Langkah 4–5. Jarak ke solusi ideal dan nilai preferensi", S["h3"]),
                _table([["Rank", "Posisi", "D⁺", "D⁻", "Ci"]] +
                       [[pt["rank"][i], POSITIONS[i], f"{pt['res'][i]['d_plus']:.4f}", f"{pt['res'][i]['d_minus']:.4f}", f"{pt['res'][i]['ci']:.4f}"]
@@ -300,7 +310,7 @@ def ahp_xlsx(criteria, profiles):
     sh.ws.column_dimensions["B"].width = 22
     for p, pos in enumerate(POSITIONS):
         a, s, n = al[p], profiles[p], al[p]["n"]
-        sh = Sheet(wb.create_sheet(pos.split("/")[0]))
+        sh = Sheet(wb.create_sheet(sheet_name(pos, wb.sheetnames)))
         sh.title(f"AHP — {pos}", 14)
         sh.title("Langkah 1. Skor kebutuhan posisi", 11)
         sh.table([["Kode", "Kriteria", "Skor", "Kategori"]] + [[cc[i], c["name"], s[i], sppk.category(s[i])] for i, c in enumerate(criteria)])
@@ -331,7 +341,7 @@ def topsis_xlsx(criteria, profiles, players):
     sh = Sheet(wb.active)
     wb.active.title = "Ringkasan"
     sh.title("Perhitungan TOPSIS — Ringkasan Nilai Preferensi", 14)
-    sh.text("Penentu rekomendasi: TOPSIS per pemain, alternatif = 4 posisi, X = bobot AHP tiap posisi, w = skill/Σskill, benefit.")
+    sh.text("Penentu rekomendasi: TOPSIS per pemain, alternatif = semua posisi, X = bobot AHP tiap posisi, w = skill/Σskill, benefit.")
     sh.text("Ci = D⁻/(D⁺+D⁻). Sheet 'Lampiran ...' = pembanding per posisi (alternatif = pemain aktif).")
     sh.r += 1
     rows = [["Pemain", "Nama", "Posisi terdaftar"] + [f"Ci {x}" for x in POSITIONS] + ["Rekomendasi"]]
@@ -350,11 +360,11 @@ def topsis_xlsx(criteria, profiles, players):
         sh.title(f"{pl['code']} · {pl['name']} — rekomendasi: {POSITIONS[best]}", 13)
         sh.table([[""] + cc, ["Skill s"] + pt["skills"], ["w = s/Σs"] + pt["w"]])
         sh.title("Langkah 1. Matriks keputusan X (bobot AHP tiap posisi)", 11)
-        sh.table([[""] + cc] + [[POSITIONS[i]] + r for i, r in enumerate(pt["x"])] + [["√Σx²"] + pt["den"]], hl=(5,))
+        sh.table([[""] + cc] + [[POSITIONS[i]] + r for i, r in enumerate(pt["x"])] + [["√Σx²"] + pt["den"]], hl=(len(POSITIONS) + 1,))
         sh.title("Langkah 2. Matriks ternormalisasi R", 11)
         sh.table([[""] + cc] + [[POSITIONS[i]] + r for i, r in enumerate(pt["norm"])])
         sh.title("Langkah 3. Matriks terbobot V & solusi ideal", 11)
-        sh.table([[""] + cc] + [[POSITIONS[i]] + r for i, r in enumerate(pt["v"])] + [["A⁺"] + pt["a_pos"], ["A⁻"] + pt["a_neg"]], hl=(5, 6))
+        sh.table([[""] + cc] + [[POSITIONS[i]] + r for i, r in enumerate(pt["v"])] + [["A⁺"] + pt["a_pos"], ["A⁻"] + pt["a_neg"]], hl=(len(POSITIONS) + 1, len(POSITIONS) + 2))
         sh.title("Langkah 4–5. Jarak & nilai preferensi", 11)
         sh.table([["Posisi", "D⁺", "D⁻", "Ci", "Rank"]] + [[POSITIONS[i], pt["res"][i]["d_plus"], pt["res"][i]["d_minus"], pt["res"][i]["ci"],
                                                             pt["rank"][i]] for i in range(len(POSITIONS))])
@@ -367,7 +377,7 @@ def topsis_xlsx(criteria, profiles, players):
     for k, pos in enumerate(POSITIONS):
         st = steps[k]
         n = len(pc)
-        sh = Sheet(wb.create_sheet("Lampiran " + pos.split("/")[0]))
+        sh = Sheet(wb.create_sheet(sheet_name("Lampiran " + pos, wb.sheetnames)))
         sh.title(f"Lampiran — Pembanding: ranking pemain di posisi {pos}", 14)
         sh.title("Bobot AHP", 11)
         sh.table([[""] + cc, ["w"] + st["w"]])

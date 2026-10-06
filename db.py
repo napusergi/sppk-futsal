@@ -36,10 +36,24 @@ CREATE TABLE IF NOT EXISTS ahp_mode(
 CREATE TABLE IF NOT EXISTS pairwise(
   position INTEGER, ci INTEGER REFERENCES criteria(id) ON DELETE CASCADE,
   cj INTEGER REFERENCES criteria(id) ON DELETE CASCADE, value REAL NOT NULL, PRIMARY KEY(position, ci, cj));
+CREATE TABLE IF NOT EXISTS positions(
+  idx INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, description TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS trainings(
+  id INTEGER PRIMARY KEY, criterion_id INTEGER NOT NULL REFERENCES criteria(id) ON DELETE CASCADE,
+  name TEXT NOT NULL, description TEXT DEFAULT '', duration TEXT DEFAULT '',
+  level TEXT DEFAULT 'Menengah' CHECK(level IN ('Dasar','Menengah','Lanjut')), sort_order INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS logs(
   id INTEGER PRIMARY KEY, username TEXT, role TEXT, category TEXT, action TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 """
+
+# posisi awal: (nama, deskripsi); indeks 0..n-1 dipakai sebagai kunci posisi di seluruh tabel
+DEFAULT_POSITIONS = [
+    ("Goalkeeper", "Penjaga gawang: refleks, positioning, komunikasi, dan distribusi bola."),
+    ("Fixo/Anchor", "Pemain bertahan paling belakang: membaca permainan, passing, duel, dan komunikasi."),
+    ("Ala/Flank", "Pemain sayap: kecepatan, dribbling, stamina, dan transisi menyerang-bertahan."),
+    ("Pivot", "Penyerang target: menahan bola membelakangi gawang, kontrol bola, dan finishing."),
+]
 
 # nama, training, skor kebutuhan [GK, Anchor, Ala, Pivot] (1-9: High=9, Medium=5, Low=1)
 CRITERIA = [
@@ -100,11 +114,25 @@ def init_db(reset=False):
     con.executescript(SCHEMA)
     if con.execute("SELECT COUNT(*) FROM criteria").fetchone()[0] == 0:
         seed(con)
+    if con.execute("SELECT COUNT(*) FROM positions").fetchone()[0] == 0:
+        con.executemany("INSERT INTO positions(idx,name,description) VALUES(?,?,?)",
+                        [(i, n, d) for i, (n, d) in enumerate(DEFAULT_POSITIONS)])
+    if con.execute("SELECT COUNT(*) FROM trainings").fetchone()[0] == 0:
+        seed_trainings(con)
     if not con.execute("SELECT 1 FROM users WHERE role='superadmin'").fetchone():
         con.execute("INSERT INTO users(username,password_hash,role,full_name) VALUES(?,?,?,?)",
                     ("superadmin", generate_password_hash("superadmin123"), "superadmin", "Super Admin"))
     con.commit()
     con.close()
+
+
+def seed_trainings(con):
+    """Pecah teks training lama per kriteria (dipisah koma) menjadi daftar latihan terpisah."""
+    for cid, text in con.execute("SELECT id, training FROM criteria").fetchall():
+        for k, part in enumerate(x.strip() for x in (text or "").split(",")):
+            if part:
+                con.execute("INSERT INTO trainings(criterion_id,name,duration,level,sort_order) VALUES(?,?,?,?,?)",
+                            (cid, part[0].upper() + part[1:], "20 menit", "Menengah", k))
 
 
 def migrate_users(con):

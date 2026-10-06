@@ -21,6 +21,12 @@ app.secret_key = "ganti-dengan-secret-key-acak"
 app.teardown_appcontext(close_db)
 
 
+@app.before_request
+def load_positions():
+    names = [r["name"] for r in get_db().execute("SELECT name FROM positions ORDER BY idx")]
+    POSITIONS[:] = names or POSITIONS
+
+
 @app.context_processor
 def inject():
     u = current_user()
@@ -99,6 +105,13 @@ def can_view_player(pid):
 def load_model(include_archived=False):
     db = get_db()
     criteria = [dict(r) for r in db.execute("SELECT * FROM criteria ORDER BY sort_order, id")]
+    trainings = {}
+    for t in db.execute("SELECT * FROM trainings ORDER BY CASE level WHEN 'Dasar' THEN 0 WHEN 'Menengah' THEN 1 ELSE 2 END, sort_order, id"):
+        trainings.setdefault(t["criterion_id"], []).append(dict(t))
+    for c in criteria:
+        c["trainings"] = trainings.get(c["id"], [])
+        if c["trainings"]:  # teks ringkas untuk export & snapshot
+            c["training"] = "; ".join(t["name"] for t in c["trainings"])
     profiles = sppk.Profiles({p: [] for p in range(len(POSITIONS))})
     prof = {(r["criterion_id"], r["position"]): r["score"] for r in db.execute("SELECT * FROM position_profile")}
     for c in criteria:
@@ -411,7 +424,7 @@ def export_topsis(fmt):
     sheets = {"Ranking TOPSIS": rows}
     for p, pos in enumerate(POSITIONS):
         a = sppk.ahp_pos(profiles, p)
-        sheets[f"AHP {pos.split('/')[0]}"] = [["Kriteria", "Skor kebutuhan", "Kategori", "Bobot"]] + \
+        sheets[reports.sheet_name(f"AHP {pos}", sheets)] = [["Kriteria", "Skor kebutuhan", "Kategori", "Bobot"]] + \
             [[c["name"], profiles[p][i], sppk.category(profiles[p][i]), round(a["weights"][i], 4)] for i, c in enumerate(criteria)] + \
             [[], ["Lambda max", round(a["lambda_max"], 4)], ["CI", round(a["ci"], 4)], ["RI", a["ri"]], ["CR", round(a["cr"], 4)]]
     sheets["Skill Pemain"] = [["Kode", "Nama"] + [c["name"] for c in criteria]] + [[p["code"], p["name"]] + p["skills"] for p in players]
@@ -430,8 +443,10 @@ def criteria_view():
         try:
             if act == "add":
                 name = request.form["name"].strip()
+                tr = request.form.get("training", "").strip() or f"Latihan khusus {name}"
                 cid = db.execute("INSERT INTO criteria(name,training,sort_order) VALUES(?,?,(SELECT COALESCE(MAX(sort_order),0)+1 FROM criteria))",
-                                 (name, request.form["training"].strip() or f"Latihan khusus {name}")).lastrowid
+                                 (name, tr)).lastrowid
+                db.execute("INSERT INTO trainings(criterion_id,name,duration,level) VALUES(?,?,?,?)", (cid, tr, "20 menit", "Menengah"))
                 for p in range(len(POSITIONS)):
                     db.execute("INSERT INTO position_profile VALUES(?,?,?)", (cid, p, int(request.form.get(f"pos_{p}", 5))))
                 for (pid,) in db.execute("SELECT id FROM players").fetchall():
@@ -440,10 +455,10 @@ def criteria_view():
                 flash(f"Kriteria {name} ditambahkan. Skill semua pemain untuk kriteria ini diisi 5 — perbarui di data pemain.", "success")
             elif act == "edit":
                 cid = int(request.form["id"])
-                db.execute("UPDATE criteria SET name=?, training=? WHERE id=?", (request.form["name"].strip(), request.form["training"].strip(), cid))
+                db.execute("UPDATE criteria SET name=? WHERE id=?", (request.form["name"].strip(), cid))
                 for p in range(len(POSITIONS)):
-                    db.execute("UPDATE position_profile SET score=? WHERE criterion_id=? AND position=?",
-                               (max(1, min(9, int(request.form[f"pos_{p}"]))), cid, p))
+                    db.execute("INSERT OR REPLACE INTO position_profile VALUES(?,?,?)",
+                               (cid, p, max(1, min(9, int(request.form.get(f"pos_{p}", 5) or 5)))))
                 log("input", f"Ubah kriteria {request.form['name']}")
                 flash("Kriteria diperbarui.", "success")
             elif act == "delete":
@@ -462,6 +477,120 @@ def criteria_view():
         return redirect(url_for("criteria_view"))
     criteria, profiles, _ = load_model()
     return render_template("criteria.html", criteria=criteria, profiles=profiles)
+
+
+@app.route("/positions", methods=["GET", "POST"])
+@coach_required
+def positions_view():
+    db = get_db()
+    if request.method == "POST":
+        f, act = request.form, request.form["action"]
+        try:
+            if act == "add":
+                name = f["name"].strip()
+                n = db.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
+                db.execute("INSERT INTO positions(idx,name,description) VALUES(?,?,?)", (n, name, f.get("description", "").strip()))
+                for (cid,) in db.execute("SELECT id FROM criteria").fetchall():
+                    db.execute("INSERT OR REPLACE INTO position_profile VALUES(?,?,5)", (cid, n))
+                log("input", f"Tambah posisi {name}")
+                flash(f"Posisi {name} ditambahkan dengan skor kebutuhan 5 untuk semua kriteria. "
+                      "Atur skornya di Data Master → Kriteria & Skor Kebutuhan, lalu periksa AHP.", "success")
+            elif act == "edit":
+                idx = int(f["idx"])
+                db.execute("UPDATE positions SET name=?, description=? WHERE idx=?", (f["name"].strip(), f.get("description", "").strip(), idx))
+                log("input", f"Ubah posisi #{idx + 1} menjadi {f['name'].strip()}")
+                flash("Posisi diperbarui.", "success")
+            elif act == "delete":
+                idx = int(f["idx"])
+                name = db.execute("SELECT name FROM positions WHERE idx=?", (idx,)).fetchone()["name"]
+                n = db.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
+                used = db.execute("SELECT COUNT(*) FROM players WHERE position=? OR desired_position=?", (idx, idx)).fetchone()[0]
+                used_res = db.execute("SELECT COUNT(*) FROM results WHERE target_position=? OR best_position=?", (idx, idx)).fetchone()[0]
+                if n <= 2:
+                    flash("Minimal 2 posisi diperlukan untuk TOPSIS.", "danger")
+                elif used or used_res:
+                    flash(f"Posisi {name} tidak bisa dihapus: dipakai {used} pemain (posisi utama/diinginkan) dan {used_res} hasil tersimpan. "
+                          "Pindahkan pemain ke posisi lain terlebih dahulu.", "danger")
+                else:
+                    delete_position(db, idx)
+                    log("input", f"Hapus posisi {name}")
+                    flash(f"Posisi {name} dihapus.", "success")
+            db.commit()
+        except Exception:
+            db.rollback()
+            flash("Nama posisi sudah dipakai.", "danger")
+        return redirect(url_for("positions_view"))
+    criteria, profiles, players = load_model(include_archived=True)
+    rows = []
+    for i, name in enumerate(POSITIONS):
+        a = sppk.ahp_pos(profiles, i)
+        d = db.execute("SELECT description FROM positions WHERE idx=?", (i,)).fetchone()
+        rows.append({"idx": i, "name": name, "description": d["description"] if d else "",
+                     "main": sum(1 for p in players if p["position"] == i and not p["archived"]),
+                     "alt": sum(1 for p in players if i in p["alt_list"] and not p["archived"]),
+                     "used": sum(1 for p in players if p["position"] == i or p["desired_position"] == i) +
+                     db.execute("SELECT COUNT(*) FROM results WHERE target_position=? OR best_position=?", (i, i)).fetchone()[0],
+                     "mode": ahp_mode_info(i)["mode"], "cr": a["cr"], "consistent": a["consistent"],
+                     "top": sorted(zip([c["name"] for c in criteria], a["weights"]), key=lambda x: -x[1])[:3]})
+    return render_template("positions.html", rows=rows)
+
+
+def delete_position(db, idx):
+    """Hapus posisi idx lalu geser indeks posisi di atasnya turun satu agar tetap 0..n-1."""
+    db.execute("DELETE FROM positions WHERE idx=?", (idx,))
+    for t in ("position_profile", "ahp_mode", "pairwise"):
+        db.execute(f"DELETE FROM {t} WHERE position=?", (idx,))
+    n = db.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
+    for k in range(idx + 1, n + 1):  # urut naik: slot di bawahnya sudah kosong
+        db.execute("UPDATE positions SET idx=? WHERE idx=?", (k - 1, k))
+        for t in ("position_profile", "ahp_mode", "pairwise"):
+            db.execute(f"UPDATE {t} SET position=? WHERE position=?", (k - 1, k))
+        db.execute("UPDATE players SET position=? WHERE position=?", (k - 1, k))
+        db.execute("UPDATE players SET desired_position=? WHERE desired_position=?", (k - 1, k))
+        db.execute("UPDATE results SET target_position=? WHERE target_position=?", (k - 1, k))
+        db.execute("UPDATE results SET best_position=? WHERE best_position=?", (k - 1, k))
+    for pid, alt in db.execute("SELECT id, alt_positions FROM players").fetchall():
+        vals = [int(x) for x in (alt or "").split(",") if x.strip() != ""]
+        new = [str(v - 1 if v > idx else v) for v in vals if v != idx]
+        db.execute("UPDATE players SET alt_positions=? WHERE id=?", (",".join(new), pid))
+
+
+LEVELS = ["Dasar", "Menengah", "Lanjut"]
+
+
+@app.route("/trainings", methods=["GET", "POST"])
+@coach_required
+def trainings_view():
+    db = get_db()
+    if request.method == "POST":
+        f, act = request.form, request.form["action"]
+        level = f.get("level") if f.get("level") in LEVELS else "Menengah"
+        if act == "add":
+            cid = int(f["criterion_id"])
+            db.execute("INSERT INTO trainings(criterion_id,name,description,duration,level,sort_order) "
+                       "VALUES(?,?,?,?,?,(SELECT COALESCE(MAX(sort_order),0)+1 FROM trainings WHERE criterion_id=?))",
+                       (cid, f["name"].strip(), f.get("description", "").strip(), f.get("duration", "").strip(), level, cid))
+            log("input", f"Tambah latihan {f['name'].strip()}")
+            flash("Latihan ditambahkan.", "success")
+        elif act == "edit":
+            db.execute("UPDATE trainings SET criterion_id=?, name=?, description=?, duration=?, level=? WHERE id=?",
+                       (int(f["criterion_id"]), f["name"].strip(), f.get("description", "").strip(), f.get("duration", "").strip(), level, int(f["id"])))
+            log("input", f"Ubah latihan {f['name'].strip()}")
+            flash("Latihan diperbarui.", "success")
+        elif act == "delete":
+            t = db.execute("SELECT * FROM trainings WHERE id=?", (int(f["id"]),)).fetchone()
+            left = db.execute("SELECT COUNT(*) FROM trainings WHERE criterion_id=?", (t["criterion_id"],)).fetchone()[0]
+            if left <= 1:
+                flash("Setiap kriteria minimal memiliki 1 latihan agar rekomendasi tetap tersedia.", "danger")
+            else:
+                db.execute("DELETE FROM trainings WHERE id=?", (t["id"],))
+                log("input", f"Hapus latihan {t['name']}")
+                flash(f"Latihan {t['name']} dihapus.", "success")
+        db.commit()
+        return redirect(url_for("trainings_view", c=f.get("criterion_id", "")))
+    criteria, _, _ = load_model()
+    sel = request.args.get("c", "")
+    return render_template("trainings.html", criteria=criteria, levels=LEVELS, sel=sel)
 
 
 @app.route("/ahp")
@@ -662,7 +791,7 @@ def panduan():
     return render_template("panduan.html")
 
 
-HELP_ANCHOR = {"ahp_matrix": "ahp_matrix", "index": "home", "dashboard": "index", "player_new": "player_form", "player_edit": "player_form", "result_detail": "results", "panduan": "alur"}
+HELP_ANCHOR = {"positions_view": "positions_view", "trainings_view": "trainings_view", "ahp_matrix": "ahp_matrix", "index": "home", "dashboard": "index", "player_new": "player_form", "player_edit": "player_form", "result_detail": "results", "panduan": "alur"}
 
 
 @app.context_processor

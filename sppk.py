@@ -249,7 +249,7 @@ def analyze(criteria, profiles, players, player_id, target_pos):
     for i, c in enumerate(criteria):
         t = target_level(profiles[target_pos][i])
         g = max(0, t - skills[i])
-        gaps.append({"criterion": c["name"], "training": c["training"], "skill": skills[i],
+        gaps.append({"criterion": c["name"], "training": c["training"], "trainings": c.get("trainings", []), "skill": skills[i],
                      "target": t, "gap": g, "weight": w[i], "priority": g * w[i]})
     gaps.sort(key=lambda x: x["priority"], reverse=True)
     fit = 1 - sum(x["priority"] for x in gaps) / (sum(w[i] * target_level(profiles[target_pos][i]) for i in range(len(w))) or 1)

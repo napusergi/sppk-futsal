@@ -57,7 +57,7 @@ ada di halaman Panduan → *Kerangka metodologi*.
 - Halaman terpisah **Perhitungan AHP** (hierarki, matriks, normalisasi, bobot, (Aw)/w, λmax, CI, CR) dan
   **Perhitungan TOPSIS** (X, R, V, A⁺, A⁻, D⁺, D⁻, Cᵢ, rank), masing-masing dengan **export PDF & Excel**
   berisi langkah lengkap untuk keempat posisi (PDF A4 landscape, kode kriteria C1…Cn + keterangan).
-- CRUD kriteria beserta skor kebutuhan per posisi dan teks training.
+- **Data Master**: Data Pemain, Posisi (tambah/ubah/hapus, minimal 2), Kriteria & Skor Kebutuhan, dan Rekomendasi Training (beberapa latihan per kriteria dengan durasi & level).
 - Manajemen pemain: tambah, ubah (termasuk posisi alternatif), arsip/pulihkan — tidak ada hapus.
 - Hasil perhitungan disimpan sebagai snapshot; log kategori input, perhitungan, rekomendasi, akses (export CSV).
 - Tiga role: Super Admin, Pelatih, Pemain; pendaftaran mandiri dengan approval; pemain hanya melihat data, hasil, dan riwayat miliknya.

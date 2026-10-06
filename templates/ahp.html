@@ -6,10 +6,10 @@
  <div><a class="btn btn-sm btn-outline-danger" href="{{ url_for('export_ahp', fmt='pdf') }}" target="_blank">Export PDF</a>
  <a class="btn btn-sm btn-court" href="{{ url_for('export_ahp', fmt='xlsx') }}">Export Excel</a></div>
 </div>
-<p class="note">Laporan PDF/Excel memuat seluruh langkah untuk keempat posisi: sumber matriks, skor kebutuhan, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
+<p class="note">Laporan PDF/Excel memuat seluruh langkah untuk semua posisi: sumber matriks, skor kebutuhan, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
 <div class="card mb-3"><div class="card-body small">
  <h2 class="h5">Kerangka metode</h2>
- <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking 4 posisi, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
+ <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking semua posisi, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
  <p class="mb-0">Matriks perbandingan tiap posisi bisa berasal dari dua sumber: <span class="badge bg-success">Manual</span> diisi pelatih sebagai pakar (AHP klasik, CR menguji konsistensi penilaian pelatih), atau <span class="badge bg-secondary">Otomatis</span> diturunkan dari skor kebutuhan 1–9 (matriks hampir selalu konsisten karena dibentuk dari rumus). <a href="{{ url_for('panduan') }}#metodologi">Penjelasan lengkap</a></p>
 </div></div>
 <div class="card mb-3"><div class="card-body">
@@ -75,9 +75,9 @@
 {% endblock %}
 {% block scripts %}
 <script>
-const colors=["#0f6b57","#e0761f","#3b6fb6","#9b3d8f"];
+const colors=["#0f6b57","#e0761f","#3b6fb6","#9b3d8f","#c2a01e","#2a9d8f","#b5485d","#5c6b73"];
 new Chart(document.getElementById("cmp"),{type:"bar",
- data:{labels:{{ criteria|map(attribute='name')|list|tojson }},datasets:[{% for s in summary %}{label:{{ POSITIONS[loop.index0]|tojson }},data:{{ s.weights|tojson }},backgroundColor:colors[{{ loop.index0 }}]},{% endfor %}]},
+ data:{labels:{{ criteria|map(attribute='name')|list|tojson }},datasets:[{% for s in summary %}{label:{{ POSITIONS[loop.index0]|tojson }},data:{{ s.weights|tojson }},backgroundColor:colors[{{ loop.index0 }} % colors.length]},{% endfor %}]},
  options:{maintainAspectRatio:false,indexAxis:"y",scales:{x:{title:{display:true,text:"Bobot"}}}}});
 </script>
 {% endblock %}
