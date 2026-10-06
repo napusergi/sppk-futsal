@@ -14,6 +14,8 @@ h1,h2,h3,.display{font-family:"Barlow Condensed","Arial Narrow",sans-serif;lette
 .navbar-dark .nav-link:hover{color:#fff;background:rgba(255,255,255,.1)}
 .navbar-dark .nav-link.active{color:#14211d!important;background:#fff;font-weight:600;box-shadow:inset 0 -3px 0 var(--ball)}
 @media (prefers-reduced-motion:reduce){.navbar-dark .nav-link{transition:none}}
+.dropdown-item.active,.dropdown-item:active{background:var(--court);color:#fff}
+.dropdown-item.active{box-shadow:inset 3px 0 0 var(--ball)}
 .btn-court{background:var(--court);color:#fff}.btn-court:hover{background:#0b5646;color:#fff}
 .card{border-color:#d6e0dd}
 .num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
@@ -46,11 +48,12 @@ th.dt-sortable:focus-visible{outline:2px solid var(--ball);outline-offset:-2px}
     {{ nl('Beranda', 'index') }}
     {% if is_staff %}
     {{ nl('Dashboard', 'dashboard') }}
-    {{ nl('Pemain', 'players', ['player_new', 'player_edit', 'player_detail']) }}
-    {{ nl('Kriteria', 'criteria_view') }}
-    {{ nl('Perhitungan AHP', 'ahp_view', ['ahp_matrix']) }}
-    {{ nl('Perhitungan TOPSIS', 'topsis_view') }}
-    {{ nl('Hasil', 'results', ['result_detail']) }}
+    {% macro dd(label, items) %}{% set on = namespace(v=false) %}{% for it in items %}{% if cur_ep == it[1] or cur_ep in it[2] %}{% set on.v = true %}{% endif %}{% endfor %}
+    <li class="nav-item dropdown"><a class="nav-link dropdown-toggle{{ ' active' if on.v }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ label }}</a>
+     <ul class="dropdown-menu">{% for text, endpoint, also in items %}{% set a = cur_ep == endpoint or cur_ep in also %}
+      <li><a class="dropdown-item{{ ' active' if a }}" {{ 'aria-current=page' if a }} href="{{ url_for(endpoint) }}">{{ text }}</a></li>{% endfor %}</ul></li>{% endmacro %}
+    {{ dd('Kelola Pemain & Kriteria', [('Data Pemain', 'players', ['player_new', 'player_edit', 'player_detail']), ('Kriteria & Skor Kebutuhan', 'criteria_view', [])]) }}
+    {{ dd('Analisis Data', [('Perhitungan AHP', 'ahp_view', ['ahp_matrix']), ('Perhitungan TOPSIS', 'topsis_view', []), ('Riwayat Hasil', 'results', ['result_detail'])]) }}
     {{ nl('Log', 'logs') }}
     {% if is_super %}{% call nl('Akun', 'users') %}{% if pending_count %} <span class="badge bg-warning text-dark">{{ pending_count }}</span>{% endif %}{% endcall %}{% endif %}
     {% elif user %}
