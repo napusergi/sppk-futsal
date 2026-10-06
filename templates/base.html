@@ -10,12 +10,24 @@
 :root{--court:#0f6b57;--court-soft:#e1efea;--ball:#e0761f;--bs-body-font-family:"IBM Plex Sans",system-ui,sans-serif;--bs-body-bg:#f3f6f5}
 h1,h2,h3,.display{font-family:"Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:.01em}
 .navbar{background:var(--court)}
-.navbar-dark .nav-link{color:rgba(255,255,255,.75);border-radius:6px;padding-inline:.65rem!important;transition:background .15s}
-.navbar-dark .nav-link:hover{color:#fff;background:rgba(255,255,255,.1)}
-.navbar-dark .nav-link.active{color:#14211d!important;background:#fff;font-weight:600;box-shadow:inset 0 -3px 0 var(--ball)}
-@media (prefers-reduced-motion:reduce){.navbar-dark .nav-link{transition:none}}
-.dropdown-item.active,.dropdown-item:active{background:var(--court);color:#fff}
-.dropdown-item.active{box-shadow:inset 3px 0 0 var(--ball)}
+.navbar-dark .nav-link{position:relative;color:rgba(255,255,255,.72);border-radius:8px;padding-inline:.7rem!important;
+  transition:color .25s ease,background-color .25s ease}
+.navbar-dark .nav-link::after{content:"";position:absolute;left:.7rem;right:.7rem;bottom:.2rem;height:2px;border-radius:2px;
+  background:var(--ball);transform:scaleX(0);transform-origin:center;transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .3s;opacity:0}
+.navbar-dark .nav-link.dropdown-toggle::after{border:0;margin:0;vertical-align:0}
+.navbar-dark .nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
+.navbar-dark .nav-link:hover::after{transform:scaleX(.45);opacity:.6}
+.navbar-dark .nav-link.active{color:#fff!important;background:rgba(255,255,255,.16);font-weight:600}
+.navbar-dark .nav-link.active::after{transform:scaleX(1);opacity:1}
+.navbar-dark .dropdown-toggle .caret{display:inline-block;margin-left:.35rem;font-size:.7em;transition:transform .25s ease}
+.navbar-dark .dropdown-toggle.show .caret{transform:rotate(180deg)}
+.dropdown-menu{border:0;border-radius:10px;box-shadow:0 10px 30px rgba(15,40,34,.18);padding:.35rem}
+.dropdown-menu.show{animation:ddIn .2s cubic-bezier(.2,.8,.2,1)}
+@keyframes ddIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.dropdown-item{border-radius:6px;transition:background-color .2s ease,color .2s ease,padding-left .2s ease}
+.dropdown-item:hover{background:var(--court-soft);padding-left:1.25rem}
+.dropdown-item.active,.dropdown-item:active{background:var(--court-soft);color:var(--court);font-weight:600;box-shadow:inset 3px 0 0 var(--ball)}
+@media (prefers-reduced-motion:reduce){.navbar-dark .nav-link,.navbar-dark .nav-link::after,.dropdown-item,.caret{transition:none}.dropdown-menu.show{animation:none}}
 .btn-court{background:var(--court);color:#fff}.btn-court:hover{background:#0b5646;color:#fff}
 .card{border-color:#d6e0dd}
 .num{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
@@ -49,10 +61,10 @@ th.dt-sortable:focus-visible{outline:2px solid var(--ball);outline-offset:-2px}
     {% if is_staff %}
     {{ nl('Dashboard', 'dashboard') }}
     {% macro dd(label, items) %}{% set on = namespace(v=false) %}{% for it in items %}{% if cur_ep == it[1] or cur_ep in it[2] %}{% set on.v = true %}{% endif %}{% endfor %}
-    <li class="nav-item dropdown"><a class="nav-link dropdown-toggle{{ ' active' if on.v }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ label }}</a>
+    <li class="nav-item dropdown"><a class="nav-link dropdown-toggle{{ ' active' if on.v }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ label }}<span class="caret" aria-hidden="true">▾</span></a>
      <ul class="dropdown-menu">{% for text, endpoint, also in items %}{% set a = cur_ep == endpoint or cur_ep in also %}
       <li><a class="dropdown-item{{ ' active' if a }}" {{ 'aria-current=page' if a }} href="{{ url_for(endpoint) }}">{{ text }}</a></li>{% endfor %}</ul></li>{% endmacro %}
-    {{ dd('Kelola Pemain & Kriteria', [('Data Pemain', 'players', ['player_new', 'player_edit', 'player_detail']), ('Kriteria & Skor Kebutuhan', 'criteria_view', [])]) }}
+    {{ dd('Data Master', [('Data Pemain', 'players', ['player_new', 'player_edit', 'player_detail']), ('Kriteria & Skor Kebutuhan', 'criteria_view', [])]) }}
     {{ dd('Analisis Data', [('Perhitungan AHP', 'ahp_view', ['ahp_matrix']), ('Perhitungan TOPSIS', 'topsis_view', []), ('Riwayat Hasil', 'results', ['result_detail'])]) }}
     {{ nl('Log', 'logs') }}
     {% if is_super %}{% call nl('Akun', 'users') %}{% if pending_count %} <span class="badge bg-warning text-dark">{{ pending_count }}</span>{% endif %}{% endcall %}{% endif %}
