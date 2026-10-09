@@ -13,7 +13,7 @@
 <div class="alert alert-warning">Pemain diarsipkan atau jumlah pemain aktif kurang dari 2, sehingga TOPSIS tidak dapat dihitung.</div>
 {% else %}
 <div class="row g-3">
- <div class="col-lg-5"><div class="card h-100"><div class="card-body">
+ <div class="col-xl-5"><div class="card h-100"><div class="card-body">
   <div class="text-muted small text-uppercase">Posisi paling sesuai</div>
   <div class="big mb-1">{{ res.best.name }}</div>
   <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}; skor pendukung {{ res.best.score|f(2) }} dari 10. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b></p>
@@ -32,7 +32,7 @@
    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('ahp_view', pos=target) }}">Lihat perhitungan AHP</a>
   </div>
  </div></div></div>
- <div class="col-lg-7"><div class="card h-100"><div class="card-body">
+ <div class="col-xl-7"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Radar skill vs kebutuhan {{ res.target_name }}</h2>
   <div style="position:relative;height:360px"><canvas id="radar"></canvas></div>
  </div></div></div>
