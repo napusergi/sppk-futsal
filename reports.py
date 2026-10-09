@@ -154,15 +154,18 @@ def ahp_pdf(criteria, profiles):
         s = profiles[p]
         n = a["n"]
         el += [PageBreak(), P(f"AHP — {pos}", S["h2"]),
-               P("Langkah 1. Skor kebutuhan posisi", S["h3"]),
-               _table([["Kode"] + cc, ["Skor"] + s, ["Kategori"] + [sppk.category(x) for x in s]], font=7)]
-        el += [P("Langkah 2. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), S["h3"]),
+               P("Hasil: bobot prioritas kriteria (vektor prioritas AHP)", S["h3"]),
+               _table([["Kode", "Kriteria", "Bobot", "%", "Peringkat"]] +
+                      [[cc[i], c["name"], f"{a['weights'][i]:.4f}", f"{a['weights'][i] * 100:.1f}%",
+                        str(1 + sum(1 for x in a["weights"] if x > a["weights"][i]))] for i, c in enumerate(criteria)],
+                      font=7, first_col=False, col_widths=[1.6 * cm, 5 * cm, 2.4 * cm, 2 * cm, 2.2 * cm])]
+        el += [P("Langkah 1. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), S["h3"]),
                _table([[""] + cc] + [[cc[i]] + [frac(v) for v in row] for i, row in enumerate(a["matrix"])] +
                       [["Σ kolom"] + [f"{x:.3f}" for x in a["col_sum"]]], hl_rows=(n + 1,))]
-        el += [P("Langkah 3. Normalisasi matriks dan bobot prioritas", S["h3"]),
+        el += [P("Langkah 2. Normalisasi matriks dan bobot prioritas", S["h3"]),
                _table([[""] + cc + ["Bobot w"]] + [[cc[i]] + [f"{v:.3f}" for v in row] + [f"{a['weights'][i]:.4f}"]
                                                     for i, row in enumerate(a["normalized"])])]
-        el += [P("Langkah 4. Uji konsistensi", S["h3"]),
+        el += [P("Langkah 3. Uji konsistensi", S["h3"]),
                _table([["Kode", "w", "(Aw)", "(Aw)/w"]] + [[cc[i], f"{a['weights'][i]:.4f}", f"{a['aw'][i]:.4f}", f"{a['ratio'][i]:.4f}"] for i in range(n)],
                       font=7, col_widths=[2 * cm, 3 * cm, 3 * cm, 3 * cm]),
                Spacer(1, 4),
@@ -316,14 +319,16 @@ def ahp_xlsx(criteria, profiles):
         a, s, n = al[p], profiles[p], al[p]["n"]
         sh = Sheet(wb.create_sheet(sheet_name(pos, wb.sheetnames)))
         sh.title(f"AHP — {pos}", 14)
-        sh.title("Langkah 1. Skor kebutuhan posisi", 11)
-        sh.table([["Kode", "Kriteria", "Skor", "Kategori"]] + [[cc[i], c["name"], s[i], sppk.category(s[i])] for i, c in enumerate(criteria)])
-        sh.title("Langkah 2. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), 11)
+        sh.title("Hasil: bobot prioritas kriteria (vektor prioritas AHP)", 11)
+        sh.table([["Kode", "Kriteria", "Bobot", "%", "Peringkat"]] +
+                 [[cc[i], c["name"], a["weights"][i], round(a["weights"][i] * 100, 1),
+                   1 + sum(1 for x in a["weights"] if x > a["weights"][i])] for i, c in enumerate(criteria)])
+        sh.title("Langkah 1. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), 11)
         sh.table([[""] + cc] + [[cc[i]] + [round(v, 4) for v in row] for i, row in enumerate(a["matrix"])] +
                  [["Σ kolom"] + a["col_sum"]], hl=(n + 1,))
-        sh.title("Langkah 3. Matriks ternormalisasi & bobot", 11)
+        sh.title("Langkah 2. Matriks ternormalisasi & bobot", 11)
         sh.table([[""] + cc + ["Bobot w"]] + [[cc[i]] + row + [a["weights"][i]] for i, row in enumerate(a["normalized"])])
-        sh.title("Langkah 4. Uji konsistensi", 11)
+        sh.title("Langkah 3. Uji konsistensi", 11)
         sh.table([["Kode", "w", "(Aw)", "(Aw)/w"]] + [[cc[i], a["weights"][i], a["aw"][i], a["ratio"][i]] for i in range(n)])
         sh.table([["Parameter", "Nilai"], ["n", n], ["λmax", a["lambda_max"]], ["CI", a["ci"]], ["RI", a["ri"]], ["CR", a["cr"]],
                   ["Status", "Konsisten" if a["consistent"] else "Tidak konsisten"]])

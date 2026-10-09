@@ -425,8 +425,9 @@ def export_topsis(fmt):
     sheets = {"Ranking TOPSIS": rows}
     for p, pos in enumerate(POSITIONS):
         a = sppk.ahp_pos(profiles, p)
-        sheets[reports.sheet_name(f"AHP {pos}", sheets)] = [["Kriteria", "Skor kebutuhan", "Kategori", "Bobot"]] + \
-            [[c["name"], profiles[p][i], sppk.category(profiles[p][i]), round(a["weights"][i], 4)] for i, c in enumerate(criteria)] + \
+        sheets[reports.sheet_name(f"AHP {pos}", sheets)] = [["Kode", "Kriteria", "Bobot", "%", "Peringkat"]] + \
+            [[f"C{i + 1}", c["name"], round(a["weights"][i], 4), round(a["weights"][i] * 100, 1),
+              1 + sum(1 for x in a["weights"] if x > a["weights"][i])] for i, c in enumerate(criteria)] + \
             [[], ["Lambda max", round(a["lambda_max"], 4)], ["CI", round(a["ci"], 4)], ["RI", a["ri"]], ["CR", round(a["cr"], 4)]]
     sheets["Skill Pemain"] = [["Kode", "Nama"] + [c["name"] for c in criteria]] + [[p["code"], p["name"]] + p["skills"] for p in players]
     log("perhitungan", f"Export {fmt.upper()} ranking TOPSIS semua pemain")

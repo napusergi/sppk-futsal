@@ -40,8 +40,8 @@
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Bobot {{ POSITIONS[pos] }}</h2>
   {% set mx = a.weights|max %}
-  <table class="table table-sm align-middle dt" id="tbl-bobot" data-per-page="25"><thead><tr><th>Kriteria</th><th class="num" title="Skor kebutuhan: hanya dipakai sebagai target analisis gap">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
-   {% for c in criteria %}<tr><td>{{ c.name }}</td><td class="num">{{ scores[loop.index0] }}</td><td class="small">{{ category(scores[loop.index0]) }}</td><td class="num">{{ a.weights[loop.index0]|f(4) }}</td><td><div class="bar"><i style="width:{{ a.weights[loop.index0]/mx*100 }}%"></i></div></td></tr>{% endfor %}
+  <table class="table table-sm align-middle dt" id="tbl-bobot" data-per-page="25"><thead><tr><th>Kode</th><th>Kriteria</th><th class="num">Bobot</th><th class="num">%</th><th class="num">Peringkat</th><th data-nosort></th></tr></thead>
+   {% for c in criteria %}{% set w = a.weights[loop.index0] %}<tr><td>C{{ loop.index }}</td><td>{{ c.name }}</td><td class="num">{{ w|f(4) }}</td><td class="num">{{ (w*100)|round(1) }}%</td><td class="num">{{ a.weights|select('gt', w)|list|length + 1 }}</td><td><div class="bar"><i style="width:{{ w/mx*100 }}%"></i></div></td></tr>{% endfor %}
   </table>
   <p class="font-monospace small mb-1">λmax = {{ a.lambda_max|f(4) }} · CI = {{ a.ci|f(4) }} · RI = {{ a.ri }} · CR = {{ a.cr|f(4) }}</p>
   {% if a.consistent %}<span class="badge bg-success">Konsisten (CR &lt; 0,1)</span>{% else %}<span class="badge bg-danger">Tidak konsisten — minta pakar merevisi matriks</span>{% endif %}
