@@ -40,7 +40,8 @@ ada di halaman Panduan → *Kerangka metodologi*.
 1. **Hierarki AHP** — Tujuan: posisi terbaik → Kriteria: 11 skill (bisa CRUD) → Alternatif: Goalkeeper, Fixo/Anchor, Ala/Flank, Pivot.
 2. **Bobot AHP** — matriks kepentingan antar-kriteria **ditetapkan sekali oleh pakar** per posisi (skala Saaty; diagonal = 1, bawah diagonal
    = kebalikan) di Analisis Data → Perhitungan AHP → *Isi matriks pakar*. Pemain baru cukup diisi nilai skill 1–10; matriks tersimpan dipakai
-   otomatis, dan koreksi matriks memicu hitung ulang bobot & CR. Data awal memuat matriks berlabel *Contoh* yang harus diganti penilaian pakar.
+   otomatis, dan koreksi matriks memicu hitung ulang bobot & CR. Matriks hanya bisa disimpan bila konsisten (tombol
+   *Cek Konsistensi* → *SIMPAN*; bila CR ≥ 0,1 ditolak dengan alasan dan petunjuk pasangan yang bertentangan). Data awal memuat matriks berlabel *Contoh* yang harus diganti penilaian pakar.
    Skor kebutuhan 1–9 per posisi hanya dipakai sebagai target analisis gap.
    Bobot = rata-rata baris matriks ternormalisasi; dihitung λmax, CI = (λmax − n)/(n − 1), CR = CI/RI (valid jika CR < 0,1).
 3. **TOPSIS (penentu rekomendasi)** — satu perhitungan per pemain: alternatif = 4 posisi,

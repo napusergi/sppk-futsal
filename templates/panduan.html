@@ -237,11 +237,12 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <ol>
   <li>Di halaman Perhitungan AHP, pilih tab posisi lalu klik <b>Isi matriks pakar</b> (atau <b>Koreksi matriks pakar</b>).</li>
   <li>Untuk setiap sel di atas diagonal, jawab: seberapa penting kriteria <b>baris</b> dibanding kriteria <b>kolom</b>? Pilih 1–9 jika kriteria baris lebih penting, atau 1/2–1/9 jika kriteria kolom yang lebih penting. Sel di bawah diagonal terisi otomatis.</li>
-  <li>Panel <b>Hasil langsung</b> menampilkan bobot dan CR setiap kali nilai diubah. Usahakan CR di bawah 0,1.</li>
-  <li>Klik <b>Simpan matriks pakar</b>. Bobot dan CR dihitung ulang, dan semua perhitungan (TOPSIS, skor, gap, rekomendasi, export) langsung memakai bobot baru.</li>
+  <li>Panel <b>Hasil langsung</b> menampilkan bobot dan CR setiap kali nilai diubah.</li>
+  <li>Klik <b>Cek Konsistensi</b>. Jika CR ≥ 0,1, matriks <b>belum bisa disimpan</b>: muncul alasan dan tabel petunjuk berisi pasangan yang paling bertentangan beserta nilai saran, dan selnya ditandai merah. Perbaiki pasangan yang menurut Anda keliru, lalu cek lagi.</li>
+  <li>Jika CR &lt; 0,1, tombol berubah menjadi <b>SIMPAN</b>. Klik untuk menyimpan. Bobot dan CR dihitung ulang, dan semua perhitungan (TOPSIS, skor, gap, rekomendasi, export) langsung memakai bobot baru.</li>
  </ol>
  <p><b>Cukup sekali:</b> matriks diisi pakar satu kali di awal untuk setiap posisi. Menambah pemain baru tidak mengubah matriks; pemain hanya diisi nilai skill 1–10. <b>Kosongkan</b> mengisi semua sel dengan 1 bila pakar ingin memulai dari awal.</p>
- <p class="note">Jika CR ≥ 0,1, cari perbandingan yang saling bertentangan, misalnya A lebih penting dari B, B lebih penting dari C, tetapi C dinilai lebih penting dari A. Jika kriteria baru ditambahkan, pasangan yang belum dinilai bernilai 1 sampai pakar melengkapinya.</p>
+ <p class="note">Matriks yang tidak konsisten selalu ditolak, juga oleh server, sehingga bobot lama tetap dipakai sampai matriks baru konsisten. Setiap perubahan sel mengharuskan cek ulang. Untuk mencari pertentangan: cari perbandingan yang saling bertentangan, misalnya A lebih penting dari B, B lebih penting dari C, tetapi C dinilai lebih penting dari A. Jika kriteria baru ditambahkan, pasangan yang belum dinilai bernilai 1 sampai pakar melengkapinya.</p>
 </section>
 
 <section id="topsis_view">

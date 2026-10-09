@@ -629,21 +629,27 @@ def ahp_matrix(pos):
             abort(400)
         n = len(criteria)
         m = [[1.0] * n for _ in range(n)]
-        db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
         for i in range(n):
             for j in range(i + 1, n):
                 v = sppk.parse_saaty(request.form.get(f"a_{i}_{j}", "1"))
                 m[i][j], m[j][i] = v, 1 / v
-                db.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (pos, criteria[i]["id"], criteria[j]["id"], v))
+        a = sppk.ahp(profiles[pos], m)
+        if not a["consistent"]:
+            # ditolak sampai konsisten: tidak ada yang tersimpan, bobot lama tetap dipakai
+            log("input", f"Matriks pakar {POSITIONS[pos]} ditolak: CR={a['cr']:.4f} ≥ 0,1")
+            flash(f"Belum disimpan: CR = {a['cr']:.4f} ≥ 0,1 (penilaian belum konsisten). "
+                  "Perbaiki pasangan pada petunjuk di bawah, lalu cek ulang.", "danger")
+            hints = sppk.inconsistency_hints([c["name"] for c in criteria], m, a["weights"])
+            return render_template("ahp_matrix.html", pos=pos, criteria=criteria, a=a, mode_info=ahp_mode_info(pos),
+                                   saaty=sppk.SAATY, RI=sppk.RI, hints=hints)
+        db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
+        for i in range(n):
+            for j in range(i + 1, n):
+                db.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (pos, criteria[i]["id"], criteria[j]["id"], m[i][j]))
         db.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'manual', ?, CURRENT_TIMESTAMP)", (pos, user))
         db.commit()
-        a = sppk.ahp(profiles[pos], m)
         log("input", f"Simpan matriks kepentingan pakar {POSITIONS[pos]} (CR={a['cr']:.4f}); bobot & konsistensi dihitung ulang")
-        if a["consistent"]:
-            flash(f"Matriks {POSITIONS[pos]} disimpan. CR = {a['cr']:.4f} (konsisten).", "success")
-        else:
-            flash(f"Matriks {POSITIONS[pos]} disimpan, tetapi CR = {a['cr']:.4f} ≥ 0,1 (tidak konsisten). "
-                  "Tinjau kembali perbandingan yang saling bertentangan.", "warning")
+        flash(f"Matriks {POSITIONS[pos]} disimpan. CR = {a['cr']:.4f} (konsisten); bobot baru dipakai untuk semua perhitungan.", "success")
         return redirect(url_for("ahp_view", pos=pos))
     a = sppk.ahp_pos(profiles, pos)
     return render_template("ahp_matrix.html", pos=pos, criteria=criteria, a=a, mode_info=ahp_mode_info(pos),

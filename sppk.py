@@ -75,6 +75,26 @@ def ahp(scores, matrix=None):
             "lambda_max": lam, "ci": ci, "ri": ri, "cr": cr, "consistent": cr < 0.1}
 
 
+def inconsistency_hints(names, matrix, weights, top=5):
+    """Petunjuk perbaikan matriks tidak konsisten.
+
+    Untuk setiap pasangan (i<j), bobot hasil penilaian lain menyiratkan aᵢⱼ ≈ wᵢ/wⱼ. Pasangan dengan
+    selisih log terbesar antara nilai pakar dan nilai tersirat adalah yang paling bertentangan; sarannya
+    = nilai skala Saaty terdekat dengan wᵢ/wⱼ (hanya petunjuk, pakar tetap yang memutuskan).
+    """
+    out = []
+    n = len(matrix)
+    for i in range(n):
+        for j in range(i + 1, n):
+            implied = weights[i] / weights[j]
+            err = abs(math.log(matrix[i][j]) - math.log(implied))
+            sug = min(SAATY, key=lambda s: abs(math.log(s) - math.log(implied)))
+            out.append({"i": i, "j": j, "a": names[i], "b": names[j], "current": matrix[i][j],
+                        "implied": implied, "suggest": sug, "err": err})
+    out.sort(key=lambda h: h["err"], reverse=True)
+    return [h for h in out[:top] if abs(h["suggest"] - h["current"]) > 1e-9]
+
+
 def topsis(matrix, weights):
     """TOPSIS, semua kriteria benefit. matrix: list baris alternatif x kriteria."""
     if not matrix:
