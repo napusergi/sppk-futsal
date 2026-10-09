@@ -131,7 +131,9 @@ def ahp_pdf(criteria, profiles):
           P("Hierarki: <b>Tujuan</b> menentukan posisi terbaik pemain futsal → <b>Kriteria</b> "
                     f"{len(criteria)} skill → <b>Alternatif</b> {', '.join(POSITIONS)}.", S["p"]),
           P("Model: hibrida AHP–TOPSIS dengan analisis gap berbobot; AHP menghasilkan bobot kriteria per posisi. "
-            "Sumber matriks: <b>manual</b> = penilaian pelatih pada skala Saaty 1–9 (AHP klasik), atau <b>otomatis</b> = diturunkan dari "
+            "Matriks kepentingan antar-kriteria ditetapkan <b>sekali oleh pakar</b> (pelatih) per posisi pada skala Saaty 1–9; "
+            "setiap pemain baru dinilai memakai matriks tersimpan ini. Matriks berlabel <b>contoh</b> adalah nilai awal untuk simulasi yang "
+            "harus diganti penilaian pakar. Nilai contoh dibentuk dari "
             "skor kebutuhan 1–9 (High = 9, Medium = 5, Low = 1): d = s<sub>i</sub> − s<sub>j</sub>; "
                     "a<sub>ij</sub> = d + 1 (d ≥ 0), a<sub>ij</sub> = 1/(1 − d) (d &lt; 0), dibatasi 1–9. "
                     "Bobot w<sub>i</sub> = rata-rata baris matriks ternormalisasi (a<sub>ij</sub>/Σ<sub>i</sub>a<sub>ij</sub>). "
@@ -144,7 +146,7 @@ def ahp_pdf(criteria, profiles):
         summ.append([f"{cc[i]} {c['name']}"] + [f"{a['weights'][i]:.4f}" for a in al])
     summ += [["λmax"] + [f"{a['lambda_max']:.4f}" for a in al], ["CI"] + [f"{a['ci']:.4f}" for a in al],
              ["CR"] + [f"{a['cr']:.4f}" for a in al], ["Status"] + ["Konsisten" if a["consistent"] else "Tidak konsisten" for a in al],
-             ["Sumber matriks"] + ["Manual" if a["manual"] else "Otomatis" for a in al]]
+             ["Sumber matriks"] + [{"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(k), "Belum diisi (semua = 1)") for k in range(len(al))]]
     el += [P("Ringkasan bobot semua posisi", S["h2"]), _table(summ, font=7.5, hl_rows=(len(summ) - 2,))]
 
     for p, pos in enumerate(POSITIONS):
@@ -154,7 +156,7 @@ def ahp_pdf(criteria, profiles):
         el += [PageBreak(), P(f"AHP — {pos}", S["h2"]),
                P("Langkah 1. Skor kebutuhan posisi", S["h3"]),
                _table([["Kode"] + cc, ["Skor"] + s, ["Kategori"] + [sppk.category(x) for x in s]], font=7)]
-        el += [P("Langkah 2. Matriks perbandingan berpasangan — sumber: " + ("Manual (penilaian pelatih)" if a["manual"] else "Otomatis dari skor kebutuhan"), S["h3"]),
+        el += [P("Langkah 2. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), S["h3"]),
                _table([[""] + cc] + [[cc[i]] + [frac(v) for v in row] for i, row in enumerate(a["matrix"])] +
                       [["Σ kolom"] + [f"{x:.3f}" for x in a["col_sum"]]], hl_rows=(n + 1,))]
         el += [P("Langkah 3. Normalisasi matriks dan bobot prioritas", S["h3"]),
@@ -189,10 +191,12 @@ def topsis_pdf(criteria, profiles, players):
             "<b>Lampiran</b> berisi TOPSIS pembanding per posisi (alternatif = pemain) untuk melihat pemain terbaik di tiap posisi.", S["p"]),
           Spacer(1, 4), _legend(criteria, S)]
     pts = [sppk.position_topsis(profiles, p["skills"]) for p in players]
-    summ = [["Pemain", "Nama", "Posisi terdaftar"] + [f"Ci {x}" for x in POSITIONS] + ["Rekomendasi"]]
+    summ = [["Pemain", "Nama", "Posisi terdaftar"] + [f"Ci {x}" for x in POSITIONS] + ["Rekomendasi", "Skor"]]
     for pl, pt in zip(players, pts):
         cis = [r["ci"] for r in pt["res"]]
-        summ.append([pl["code"], pl["name"], POSITIONS[pl["position"]]] + [f"{c:.4f}" for c in cis] + [POSITIONS[cis.index(max(cis))]])
+        b = cis.index(max(cis))
+        summ.append([pl["code"], pl["name"], POSITIONS[pl["position"]]] + [f"{c:.4f}" for c in cis] +
+                    [POSITIONS[b], f"{sppk.weighted_scores(profiles, pl['skills'])[b]:.2f}"])
     t = _table(summ, font=7.5)
     t.setStyle(TableStyle([("ALIGN", (1, 0), (2, -1), "LEFT")]))
     el += [P("Ringkasan nilai preferensi dan rekomendasi posisi (TOPSIS per pemain)", S["h2"]), t]
@@ -298,14 +302,14 @@ def ahp_xlsx(criteria, profiles):
     sh = Sheet(wb.active)
     wb.active.title = "Ringkasan"
     sh.title("Perhitungan AHP — Ringkasan Bobot", 14)
-    sh.text("Model hibrida AHP–TOPSIS + analisis gap berbobot. Matriks manual = penilaian pelatih (skala Saaty);")
-    sh.text("matriks otomatis: d = si − sj; aij = d+1 (d ≥ 0) atau 1/(1−d) (d < 0), maks 9. Konsisten bila CR < 0,1.")
+    sh.text("Model hibrida AHP–TOPSIS + analisis gap berbobot. Matriks kepentingan ditetapkan sekali oleh pakar per posisi (skala Saaty).")
+    sh.text("Matriks berlabel 'Contoh' = nilai awal simulasi, wajib diganti penilaian pakar. Konsisten bila CR < 0,1.")
     sh.r += 1
     al = [sppk.ahp_pos(profiles, p) for p in range(len(POSITIONS))]
     sh.table([["Kode", "Kriteria"] + POSITIONS] + [[cc[i], c["name"]] + [a["weights"][i] for a in al] for i, c in enumerate(criteria)] +
              [["", "λmax"] + [a["lambda_max"] for a in al], ["", "CI"] + [a["ci"] for a in al], ["", "RI"] + [a["ri"] for a in al],
               ["", "CR"] + [a["cr"] for a in al], ["", "Status"] + ["Konsisten" if a["consistent"] else "Tidak" for a in al],
-              ["", "Sumber matriks"] + ["Manual" if a["manual"] else "Otomatis" for a in al]])
+              ["", "Sumber matriks"] + [{"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(k), "Belum diisi (semua = 1)") for k in range(len(al))]])
     sh.widths(8, 16)
     sh.ws.column_dimensions["B"].width = 22
     for p, pos in enumerate(POSITIONS):
@@ -314,7 +318,7 @@ def ahp_xlsx(criteria, profiles):
         sh.title(f"AHP — {pos}", 14)
         sh.title("Langkah 1. Skor kebutuhan posisi", 11)
         sh.table([["Kode", "Kriteria", "Skor", "Kategori"]] + [[cc[i], c["name"], s[i], sppk.category(s[i])] for i, c in enumerate(criteria)])
-        sh.title("Langkah 2. Matriks perbandingan berpasangan — sumber: " + ("Manual (penilaian pelatih)" if a["manual"] else "Otomatis dari skor kebutuhan"), 11)
+        sh.title("Langkah 2. Matriks perbandingan berpasangan — sumber: " + {"pakar": "Penilaian pakar", "contoh": "Contoh (belum diisi pakar)"}.get(getattr(profiles, "sources", {}).get(p), "Belum diisi (semua = 1)"), 11)
         sh.table([[""] + cc] + [[cc[i]] + [round(v, 4) for v in row] for i, row in enumerate(a["matrix"])] +
                  [["Σ kolom"] + a["col_sum"]], hl=(n + 1,))
         sh.title("Langkah 3. Matriks ternormalisasi & bobot", 11)
@@ -344,10 +348,11 @@ def topsis_xlsx(criteria, profiles, players):
     sh.text("Penentu rekomendasi: TOPSIS per pemain, alternatif = semua posisi, X = bobot AHP tiap posisi, w = skill/Σskill, benefit.")
     sh.text("Ci = D⁻/(D⁺+D⁻). Sheet 'Lampiran ...' = pembanding per posisi (alternatif = pemain aktif).")
     sh.r += 1
-    rows = [["Pemain", "Nama", "Posisi terdaftar"] + [f"Ci {x}" for x in POSITIONS] + ["Rekomendasi"]]
+    rows = [["Pemain", "Nama", "Posisi terdaftar"] + [f"Ci {x}" for x in POSITIONS] + ["Rekomendasi", "Skor (1-10)"]]
     for pl, pt in zip(players, pts):
         cis = [r["ci"] for r in pt["res"]]
-        rows.append([pl["code"], pl["name"], POSITIONS[pl["position"]]] + cis + [POSITIONS[cis.index(max(cis))]])
+        b = cis.index(max(cis))
+        rows.append([pl["code"], pl["name"], POSITIONS[pl["position"]]] + cis + [POSITIONS[b], round(sppk.weighted_scores(profiles, pl["skills"])[b], 2)])
     sh.table(rows)
     sh.title("Keterangan kode kriteria", 11)
     sh.table([["Kode", "Kriteria"]] + [[cc[i], c["name"]] for i, c in enumerate(criteria)])

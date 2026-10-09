@@ -5,12 +5,11 @@
 @media (min-width:1200px){.side-panel{position:sticky;top:80px;max-height:calc(100vh - 96px);overflow-y:auto}}
 </style>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
- <h1 class="mb-0">Matriks Perbandingan: {{ POSITIONS[pos] }}</h1>
+ <h1 class="mb-0">Matriks Kepentingan Pakar: {{ POSITIONS[pos] }}</h1>
  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('ahp_view', pos=pos) }}">Kembali ke Perhitungan AHP</a>
 </div>
 <p class="text-muted mb-3">Mode saat ini:
- {% if mode_info.mode == 'manual' %}<span class="badge bg-success">Manual (penilaian pelatih)</span> diisi {{ mode_info.updated_by }}, {{ mode_info.updated_at }} UTC
- {% else %}<span class="badge bg-secondary">Otomatis dari skor kebutuhan</span>{% endif %}</p>
+ {% if mode_info.source == 'pakar' %}<span class="badge bg-success">Penilaian pakar</span> <span class="small text-muted">disimpan {{ mode_info.updated_by }}, {{ mode_info.updated_at }} UTC</span>{% elif mode_info.source == 'contoh' %}<span class="badge bg-warning text-dark">Contoh, belum diisi pakar</span> <span class="small text-muted">nilai awal untuk simulasi; ganti dengan penilaian pakar</span>{% else %}<span class="badge bg-danger">Belum diisi</span> <span class="small text-muted">semua perbandingan = 1 (bobot sama rata)</span>{% endif %}</p>
 
 <div class="row g-3">
  <div class="col-xl-9">
@@ -38,21 +37,16 @@
      <th class="text-nowrap">C{{ loop.index }} {{ ri.name }}</th>
      {% for cj in criteria %}{% set j = loop.index0 %}
       {% if i == j %}<td class="text-center text-muted">1</td>
-      {% elif i < j %}<td class="p-1"><select class="form-select form-select-sm px-1" style="min-width:66px" name="a_{{ i }}_{{ j }}" id="a_{{ i }}_{{ j }}" data-i="{{ i }}" data-j="{{ j }}" data-auto="{{ auto[i][j] }}" title="{{ ri.name }} vs {{ cj.name }}">
+      {% elif i < j %}<td class="p-1"><select class="form-select form-select-sm px-1" style="min-width:66px" name="a_{{ i }}_{{ j }}" id="a_{{ i }}_{{ j }}" data-i="{{ i }}" data-j="{{ j }}" title="{{ ri.name }} vs {{ cj.name }}">
         {% for v in saaty %}<option value="{{ fr(v) }}" data-v="{{ v }}" {{ 'selected' if (v - a.matrix[i][j])|abs < 0.0001 }}>{{ fr(v) }}</option>{% endfor %}</select></td>
       {% else %}<td class="text-center text-muted font-monospace" id="r_{{ i }}_{{ j }}">{{ fr(a.matrix[i][j]) }}</td>{% endif %}
      {% endfor %}</tr>{% endfor %}
    </table></div>
    <div class="d-flex flex-wrap gap-2">
-    <button class="btn btn-court">Simpan matriks manual</button>
-    <button class="btn btn-outline-secondary" type="button" id="fillAuto">Isi dengan nilai otomatis</button>
+    <button class="btn btn-court">Simpan matriks pakar</button>
     <button class="btn btn-outline-secondary" type="button" id="fillOne">Kosongkan (semua = 1)</button>
    </div>
   </div></form>
-  {% if mode_info.mode == 'manual' %}
-  <form method="post" class="mt-2" onsubmit="return confirm('Hapus penilaian manual dan kembali ke matriks otomatis?')">
-   <input type="hidden" name="action" value="reset"><button class="btn btn-sm btn-outline-danger">Kembali ke mode otomatis</button></form>
-  {% endif %}
  </div>
  <div class="col-xl-3">
   <div class="side-panel">
@@ -86,7 +80,6 @@ function recalc(){
 }
 function setAll(f){sel.forEach(s=>{const t=f(s);let best=0,d=1e9;[...s.options].forEach((o,k)=>{const e=Math.abs(Math.log(+o.dataset.v)-Math.log(t));if(e<d){d=e;best=k}});s.selectedIndex=best});recalc()}
 sel.forEach(s=>s.addEventListener("change",recalc));
-document.getElementById("fillAuto").onclick=()=>setAll(s=>+s.dataset.auto);
 document.getElementById("fillOne").onclick=()=>setAll(()=>1);
 recalc();
 </script>

@@ -119,11 +119,33 @@ def init_db(reset=False):
                         [(i, n, d) for i, (n, d) in enumerate(DEFAULT_POSITIONS)])
     if con.execute("SELECT COUNT(*) FROM trainings").fetchone()[0] == 0:
         seed_trainings(con)
+    seed_example_matrices(con)
     if not con.execute("SELECT 1 FROM users WHERE role='superadmin'").fetchone():
         con.execute("INSERT INTO users(username,password_hash,role,full_name) VALUES(?,?,?,?)",
                     ("superadmin", generate_password_hash("superadmin123"), "superadmin", "Super Admin"))
     con.commit()
     con.close()
+
+
+def seed_example_matrices(con):
+    """Posisi yang belum punya matriks pakar diberi matriks CONTOH (updated_by='contoh').
+
+    Nilai contoh = penilaian awal berbasis skor kebutuhan; wajib diganti penilaian pakar.
+    Mode otomatis tidak dipakai lagi: perhitungan selalu membaca matriks tersimpan.
+    """
+    from sppk import pairwise_matrix
+    cids = [r[0] for r in con.execute("SELECT id FROM criteria ORDER BY sort_order, id")]
+    for (p,) in con.execute("SELECT idx FROM positions").fetchall():
+        row = con.execute("SELECT mode FROM ahp_mode WHERE position=?", (p,)).fetchone()
+        if row and row[0] == "manual":
+            continue
+        prof = dict(con.execute("SELECT criterion_id, score FROM position_profile WHERE position=?", (p,)).fetchall())
+        m = pairwise_matrix([prof.get(c, 5) for c in cids])
+        con.execute("DELETE FROM pairwise WHERE position=?", (p,))
+        for i in range(len(cids)):
+            for j in range(i + 1, len(cids)):
+                con.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (p, cids[i], cids[j], m[i][j]))
+        con.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'manual', 'contoh', CURRENT_TIMESTAMP)", (p,))
 
 
 def seed_trainings(con):

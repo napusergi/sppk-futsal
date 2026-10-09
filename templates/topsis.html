@@ -16,12 +16,12 @@
 <div class="card mb-3"><div class="card-body">
  <h2 class="h4">Ringkasan: Cᵢ setiap posisi untuk setiap pemain</h2>
  <div class="table-responsive"><table class="table table-sm table-hover align-middle dt" id="tbl-ringkasan">
-  <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th></tr></thead>
+  <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th><th class="num" title="Skor pendukung Σ(bobot AHP × nilai skill) pada posisi rekomendasi, skala 1–10">Skor</th></tr></thead>
   {% for pl in players %}{% set cis = summary[pl.id] %}{% set b = cis.index(cis|max) %}<tr {{ 'class=table-active' if loop.index0 == ep }}>
    <td><a href="{{ url_for('topsis_view', view='pemain', p=loop.index0) }}">{{ pl.code }}</a> <span class="small text-muted">{{ pl.name }}</span></td>
    <td class="small">{{ POSITIONS[pl.position] }}</td>
    {% for c in cis %}<td class="num">{% if loop.index0 == b %}<b>{{ c|f(4) }}</b>{% else %}{{ c|f(4) }}{% endif %}</td>{% endfor %}
-   <td><span class="badge {{ 'bg-success' if b == pl.position or b in pl.alt_list else 'bg-warning text-dark' }}">{{ POSITIONS[b] }}</span></td></tr>{% endfor %}
+   <td><span class="badge {{ 'bg-success' if b == pl.position or b in pl.alt_list else 'bg-warning text-dark' }}">{{ POSITIONS[b] }}</span></td><td class="num">{{ scores[pl.id][b]|f(2) }}</td></tr>{% endfor %}
  </table></div>
  <p class="small text-muted mb-0">Klik kode pemain untuk melihat langkah perhitungannya di bawah.</p>
 </div></div>

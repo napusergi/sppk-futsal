@@ -14,12 +14,12 @@
    <a class="btn btn-sm btn-court" href="{{ url_for('export_topsis', fmt='xlsx') }}">Excel</a></div>
   </div>
   <div class="table-responsive"><table class="table table-sm table-hover align-middle dt" id="tbl-kecocokan">
-   <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th></tr></thead>
+   <thead><tr><th>Pemain</th><th>Posisi terdaftar</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th>Rekomendasi</th><th class="num" title="Skor pendukung Σ(bobot AHP × nilai skill) pada posisi rekomendasi, skala 1–10">Skor</th></tr></thead>
    <tbody>{% for r in rows %}<tr>
     <td><a href="{{ url_for('player_detail', pid=r.id) }}">{{ r.code }}</a> <span class="text-muted small">{{ r.name }}</span></td>
     <td class="small">{{ POSITIONS[r.position] }}{% for a in r.alt_list %} / {{ POSITIONS[a] }}{% endfor %}</td>
     {% for c in r.cis %}<td class="num">{% if loop.index0 == r.best %}<b>{{ c|f }}</b>{% else %}{{ c|f }}{% endif %}</td>{% endfor %}
-    <td><span class="badge {{ 'bg-success' if r.best == r.position or r.best in r.alt_list else 'bg-warning text-dark' }}">{{ POSITIONS[r.best] }}</span></td>
+    <td><span class="badge {{ 'bg-success' if r.best == r.position or r.best in r.alt_list else 'bg-warning text-dark' }}">{{ POSITIONS[r.best] }}</span></td><td class="num">{{ r.score|f(2) }}</td>
    </tr>{% endfor %}</tbody>
   </table></div>
   <p class="note mb-0">Cᵢ dari TOPSIS per pemain (alternatif = posisi). Hijau: rekomendasi sesuai posisi terdaftar/alternatif. Kuning: sistem menyarankan posisi lain.</p>

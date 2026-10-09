@@ -11,7 +11,7 @@
     <input form="pf{{ r.idx }}" class="form-control form-control-sm" name="name" id="pn{{ r.idx }}" value="{{ r.name }}" required style="min-width:140px"></td>
    <td style="min-width:260px"><input form="pf{{ r.idx }}" class="form-control form-control-sm" name="description" id="pd{{ r.idx }}" value="{{ r.description }}"></td>
    <td class="num">{{ r.main }}</td><td class="num">{{ r.alt }}</td>
-   <td><a href="{{ url_for('ahp_view', pos=r.idx) }}" class="badge text-decoration-none {{ 'bg-success' if r.mode == 'manual' else 'bg-secondary' }}">{{ 'Manual' if r.mode == 'manual' else 'Otomatis' }}</a></td>
+   <td><a href="{{ url_for('ahp_view', pos=r.idx) }}" class="badge text-decoration-none {{ {'pakar': 'bg-success', 'contoh': 'bg-warning text-dark'}.get(r.source, 'bg-danger') }}">{{ {'pakar': 'Pakar', 'contoh': 'Contoh'}.get(r.source, 'Belum diisi') }}</a></td>
    <td class="num">{{ r.cr|f(4) }} {% if not r.consistent %}<span class="badge bg-danger">!</span>{% endif %}</td>
    <td class="small" style="white-space:normal;min-width:180px">{% for n, w in r.top %}{{ n }} <span class="text-muted">{{ (w*100)|round(1) }}%</span>{{ ', ' if not loop.last }}{% endfor %}</td>
    <td class="text-nowrap"><button form="pf{{ r.idx }}" class="btn btn-sm btn-court">Simpan</button>

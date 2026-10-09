@@ -10,7 +10,7 @@
 <div class="card mb-3"><div class="card-body small">
  <h2 class="h5">Kerangka metode</h2>
  <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking semua posisi, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
- <p class="mb-0">Matriks perbandingan tiap posisi bisa berasal dari dua sumber: <span class="badge bg-success">Manual</span> diisi pelatih sebagai pakar (AHP klasik, CR menguji konsistensi penilaian pelatih), atau <span class="badge bg-secondary">Otomatis</span> diturunkan dari skor kebutuhan 1–9 (matriks hampir selalu konsisten karena dibentuk dari rumus). <a href="{{ url_for('panduan') }}#metodologi">Penjelasan lengkap</a></p>
+ <p class="mb-0">Matriks kepentingan antar-kriteria <b>ditetapkan sekali oleh pakar</b> (pelatih) untuk setiap posisi. Setiap kali pemain baru ditambahkan, sistem memakai matriks tersimpan ini untuk bobot dan ranking; pemain cukup diisi nilai skill 1–10. Bila pakar mengoreksi matriks, bobot dan konsistensi (CR) dihitung ulang. <a href="{{ url_for('panduan') }}#metodologi">Penjelasan lengkap</a></p>
 </div></div>
 <div class="card mb-3"><div class="card-body">
  <h2 class="h5">Struktur hierarki</h2>
@@ -26,9 +26,8 @@
 <ul class="nav nav-tabs mb-3">{% for p in POSITIONS %}<li class="nav-item"><a class="nav-link {{ 'active' if pos == loop.index0 }}" href="{{ url_for('ahp_view', pos=loop.index0) }}">{{ p }}</a></li>{% endfor %}</ul>
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
  <span>Sumber matriks {{ POSITIONS[pos] }}:</span>
- {% if mode_info.mode == 'manual' %}<span class="badge bg-success">Manual (penilaian pelatih)</span><span class="small text-muted">diisi {{ mode_info.updated_by }}, {{ mode_info.updated_at }} UTC</span>
- {% else %}<span class="badge bg-secondary">Otomatis dari skor kebutuhan</span>{% endif %}
- {% if is_staff %}<a class="btn btn-sm btn-court ms-auto" href="{{ url_for('ahp_matrix', pos=pos) }}">{{ 'Ubah matriks manual' if mode_info.mode == 'manual' else 'Isi matriks manual' }}</a>{% endif %}
+ {% if mode_info.source == 'pakar' %}<span class="badge bg-success">Penilaian pakar</span> <span class="small text-muted">disimpan {{ mode_info.updated_by }}, {{ mode_info.updated_at }} UTC</span>{% elif mode_info.source == 'contoh' %}<span class="badge bg-warning text-dark">Contoh, belum diisi pakar</span> <span class="small text-muted">nilai awal untuk simulasi; ganti dengan penilaian pakar</span>{% else %}<span class="badge bg-danger">Belum diisi</span> <span class="small text-muted">semua perbandingan = 1 (bobot sama rata)</span>{% endif %}
+ {% if is_staff %}<a class="btn btn-sm btn-court ms-auto" href="{{ url_for('ahp_matrix', pos=pos) }}">{{ 'Koreksi matriks pakar' if mode_info.source == 'pakar' else 'Isi matriks pakar' }}</a>{% endif %}
 </div>
 {% call example_block("Rumus & contoh perhitungan AHP — " ~ POSITIONS[pos], example) %}
  <form method="get" class="row g-2 align-items-end mb-2"><input type="hidden" name="pos" value="{{ pos }}"><input type="hidden" name="ex" value="1">
@@ -41,11 +40,11 @@
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Bobot {{ POSITIONS[pos] }}</h2>
   {% set mx = a.weights|max %}
-  <table class="table table-sm align-middle dt" id="tbl-bobot" data-per-page="25"><thead><tr><th>Kriteria</th><th class="num" title="Skor kebutuhan (dipakai untuk target gap{{ '' if a.manual else ' dan matriks otomatis' }})">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
+  <table class="table table-sm align-middle dt" id="tbl-bobot" data-per-page="25"><thead><tr><th>Kriteria</th><th class="num" title="Skor kebutuhan: hanya dipakai sebagai target analisis gap">Skor</th><th>Kategori</th><th class="num">Bobot</th><th></th></tr></thead>
    {% for c in criteria %}<tr><td>{{ c.name }}</td><td class="num">{{ scores[loop.index0] }}</td><td class="small">{{ category(scores[loop.index0]) }}</td><td class="num">{{ a.weights[loop.index0]|f(4) }}</td><td><div class="bar"><i style="width:{{ a.weights[loop.index0]/mx*100 }}%"></i></div></td></tr>{% endfor %}
   </table>
   <p class="font-monospace small mb-1">λmax = {{ a.lambda_max|f(4) }} · CI = {{ a.ci|f(4) }} · RI = {{ a.ri }} · CR = {{ a.cr|f(4) }}</p>
-  {% if a.consistent %}<span class="badge bg-success">Konsisten (CR &lt; 0,1)</span>{% else %}<span class="badge bg-danger">Tidak konsisten — revisi {{ 'penilaian matriks' if a.manual else 'skor kebutuhan' }}</span>{% endif %}
+  {% if a.consistent %}<span class="badge bg-success">Konsisten (CR &lt; 0,1)</span>{% else %}<span class="badge bg-danger">Tidak konsisten — minta pakar merevisi matriks</span>{% endif %}
  </div></div></div>
  <div class="col-lg-7"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Perbandingan bobot antar posisi</h2>
@@ -53,16 +52,16 @@
  </div></div></div>
  <div class="col-12"><div class="card"><div class="card-body">
   <h2 class="h4">Matriks perbandingan berpasangan</h2>
-  <p class="note">{% if a.manual %}Diisi pelatih pada skala Saaty 1–9; sel di bawah diagonal adalah kebalikannya.{% else %}Dibentuk otomatis: d = sᵢ − sⱼ; aᵢⱼ = d + 1 jika d ≥ 0, aᵢⱼ = 1/(1 − d) jika d &lt; 0 (dibatasi skala Saaty 1–9).{% endif %}</p>
+  <p class="note">Diisi pakar pada skala Saaty 1–9 (sel di atas diagonal); diagonal = 1 dan sel di bawah diagonal adalah kebalikannya. {% for c in criteria %}<b>C{{ loop.index }}</b> {{ c.name }}{{ ' · ' if not loop.last }}{% endfor %}</p>
   <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
-   <thead><tr><th></th>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}</tr></thead>
-   {% for row in a.matrix %}<tr><th>{{ criteria[loop.index0].name }}</th>{% for v in row %}<td class="num">{{ v|round|int if v >= 1 else '1/' ~ (1/v)|round|int }}</td>{% endfor %}</tr>{% endfor %}
+   <thead><tr><th></th>{% for c in criteria %}<th class="num" title="{{ c.name }}">C{{ loop.index }}</th>{% endfor %}</tr></thead>
+   {% for row in a.matrix %}<tr><th title="{{ criteria[loop.index0].name }}">C{{ loop.index }}</th>{% for v in row %}<td class="num">{{ v|round|int if v >= 1 else '1/' ~ (1/v)|round|int }}</td>{% endfor %}</tr>{% endfor %}
    <tr><th>Jumlah kolom</th>{% for s in a.col_sum %}<td class="num">{{ s|f(2) }}</td>{% endfor %}</tr>
   </table></div>
   <h2 class="h5 mt-3">Matriks ternormalisasi</h2>
   <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small">
-   <thead><tr><th></th>{% for c in criteria %}<th class="num">{{ c.name[:8] }}</th>{% endfor %}<th class="num">Bobot</th></tr></thead>
-   {% for row in a.normalized %}<tr><th>{{ criteria[loop.index0].name }}</th>{% for v in row %}<td class="num">{{ v|f(3) }}</td>{% endfor %}<td class="num"><b>{{ a.weights[loop.index0]|f(4) }}</b></td></tr>{% endfor %}
+   <thead><tr><th></th>{% for c in criteria %}<th class="num" title="{{ c.name }}">C{{ loop.index }}</th>{% endfor %}<th class="num">Bobot</th></tr></thead>
+   {% for row in a.normalized %}<tr><th title="{{ criteria[loop.index0].name }}">C{{ loop.index }}</th>{% for v in row %}<td class="num">{{ v|f(3) }}</td>{% endfor %}<td class="num"><b>{{ a.weights[loop.index0]|f(4) }}</b></td></tr>{% endfor %}
   </table></div>
   <h2 class="h5 mt-3">Uji konsistensi</h2>
   <div class="table-responsive"><table class="table table-sm table-bordered font-monospace small" style="max-width:520px">

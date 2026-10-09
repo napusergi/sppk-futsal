@@ -14,7 +14,7 @@ def category(score):
 
 
 def pairwise_matrix(scores):
-    """Matriks perbandingan berpasangan otomatis dari skor kebutuhan (1-9).
+    """Matriks berpasangan dari skor kebutuhan (1-9); HANYA dipakai untuk mengisi nilai CONTOH awal (db.py).
 
     Selisih d = s_i - s_j  ->  a_ij = d + 1 (d >= 0)  atau  1 / (1 - d) (d < 0), dibatasi skala Saaty 1-9.
     """
@@ -38,10 +38,12 @@ class Profiles(dict):
     def __init__(self, *a, matrices=None, **k):
         super().__init__(*a, **k)
         self.matrices = matrices or {}
+        self.sources = {}  # pos -> 'pakar' | 'contoh' | 'kosong'
+
 
 
 def ahp_pos(profiles, p):
-    """AHP untuk posisi p: pakai matriks manual pelatih bila ada, jika tidak matriks otomatis dari skor."""
+    """AHP untuk posisi p memakai matriks kepentingan tersimpan (diisi pakar sekali di awal)."""
     return ahp(profiles[p], getattr(profiles, "matrices", {}).get(p))
 
 
@@ -126,7 +128,7 @@ def ahp_example(names, scores, a, i=0, j=1):
     rule = f"d = {d} ≥ 0 → a = d + 1" if d >= 0 else f"d = {d} < 0 → a = 1/(1 − d)"
     if a.get("manual"):
         lbl = SAATY_LABEL.get(round(aij)) if aij >= 1 else None
-        step1 = ("1. Elemen matriks perbandingan (penilaian pelatih)",
+        step1 = ("1. Elemen matriks perbandingan (penilaian pakar, ditetapkan sekali)",
                  "aᵢⱼ = penilaian pakar pada skala Saaty 1–9 ;  aⱼᵢ = 1/aᵢⱼ ;  aᵢᵢ = 1",
                  f"Pelatih menilai {ci_} vs {cj} = {_frac(aij)}{' (' + lbl + ')' if lbl else ''};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
     else:
@@ -218,6 +220,11 @@ def position_topsis(profiles, skills):
     return st
 
 
+def weighted_scores(profiles, skills):
+    """Skor pendukung per posisi = Σ (bobot AHP posisi × nilai skill 1-10); skala hasil 1-10."""
+    return [sum(w * s for w, s in zip(ahp_pos(profiles, p)["weights"], skills)) for p in range(len(POSITIONS))]
+
+
 def position_matrix_example(names, st, p=0, j=0):
     """Langkah 0: matriks keputusan dan vektor bobot untuk contoh perhitungan TOPSIS per pemain."""
     pos, cn = POSITIONS[p], names[j]
@@ -240,7 +247,8 @@ def analyze(criteria, profiles, players, player_id, target_pos):
     ahps = {p: ahp_pos(profiles, p) for p in range(len(POSITIONS))}
     idx = next(i for i, pl in enumerate(players) if pl["id"] == player_id)
     pt = position_topsis(profiles, players[idx]["skills"])
-    ranking = [{"pos": p, "name": POSITIONS[p], **pt["res"][p]} for p in range(len(POSITIONS))]
+    scores = weighted_scores(profiles, players[idx]["skills"])
+    ranking = [{"pos": p, "name": POSITIONS[p], "score": scores[p], **pt["res"][p]} for p in range(len(POSITIONS))]
     ranking.sort(key=lambda x: x["ci"], reverse=True)
 
     w = ahps[target_pos]["weights"]

@@ -16,11 +16,11 @@
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <div class="text-muted small text-uppercase">Posisi paling sesuai</div>
   <div class="big mb-1">{{ res.best.name }}</div>
-  <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b></p>
+  <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}; skor pendukung {{ res.best.score|f(2) }} dari 10. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b></p>
   <table class="table table-sm align-middle dt" id="tbl-ranking" data-per-page="5">
-   <thead><tr><th>#</th><th>Posisi</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th></th></tr></thead>
+   <thead><tr><th>#</th><th>Posisi</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th class="num" title="Skor pendukung = Σ(bobot AHP × nilai skill), skala 1–10">Skor</th><th></th></tr></thead>
    {% for r in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ r.name }}{% if loop.first %} <span class="badge bg-success">terbaik</span>{% endif %}</td>
-    <td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f }}</td><td><div class="bar"><i style="width:{{ r.ci*100 }}%"></i></div></td></tr>{% endfor %}
+    <td class="num">{{ r.d_plus|f(4) }}</td><td class="num">{{ r.d_minus|f(4) }}</td><td class="num">{{ r.ci|f }}</td><td class="num">{{ r.score|f(2) }}</td><td><div class="bar"><i style="width:{{ r.ci*100 }}%"></i></div></td></tr>{% endfor %}
   </table>
   <div class="d-flex flex-wrap gap-2">
    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('export_player', pid=p.id, fmt='csv', target=target) }}">Export CSV</a>

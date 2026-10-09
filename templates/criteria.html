@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Kriteria &amp; Skor Kebutuhan Posisi</h1>
-<p class="note">Skor kebutuhan 1–9 per posisi (High = 9, Medium = 5, Low = 1; nilai antara 2–8 boleh dipakai). Matriks perbandingan berpasangan AHP dibentuk otomatis dari skor ini.</p>
+<p class="note">Skor kebutuhan 1–9 per posisi (High = 9, Medium = 5, Low = 1; nilai antara 2–8 boleh dipakai). Skor ini hanya dipakai sebagai <b>target analisis gap</b>; bobot AHP berasal dari matriks kepentingan yang diisi pakar di Analisis Data → Perhitungan AHP.</p>
 <div class="card mb-4"><div class="card-body table-responsive">
 <table class="table table-sm align-middle dt" id="tbl-kriteria" data-per-page="25">
  <thead><tr><th>Kriteria</th><th>Latihan ({{ criteria|map(attribute='trainings')|map('length')|sum }})</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th></th></tr></thead>

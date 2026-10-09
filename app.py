@@ -117,17 +117,18 @@ def load_model(include_archived=False):
     for c in criteria:
         for p in profiles:
             profiles[p].append(prof.get((c["id"], p), 5))
-    # matriks manual pelatih; pasangan yang belum dinilai (mis. kriteria baru) memakai nilai otomatis
+    # matriks kepentingan dari pakar (tersimpan); pasangan yang belum dinilai (mis. kriteria baru) = 1
     pw = {(r["position"], r["ci"], r["cj"]): r["value"] for r in db.execute("SELECT * FROM pairwise")}
-    for r in db.execute("SELECT * FROM ahp_mode WHERE mode='manual'"):
-        p = r["position"]
-        m = sppk.pairwise_matrix(profiles[p])
+    for p in range(len(POSITIONS)):
+        n = len(criteria)
+        m = [[1.0] * n for _ in range(n)]
         for i, a in enumerate(criteria):
             for j, b in enumerate(criteria):
                 if i < j and (p, a["id"], b["id"]) in pw:
                     m[i][j] = pw[(p, a["id"], b["id"])]
                     m[j][i] = 1 / m[i][j]
         profiles.matrices[p] = m
+        profiles.sources[p] = ahp_mode_info(p)["source"]
     q = "SELECT * FROM players" + ("" if include_archived else " WHERE archived=0") + " ORDER BY code"
     players = [dict(r) for r in db.execute(q)]
     sk = {(r["player_id"], r["criterion_id"]): r["value"] for r in db.execute("SELECT * FROM skills")}
@@ -233,7 +234,7 @@ def dashboard():
     for pl in players:
         cis = all_ci.get(pl["id"], [0] * len(POSITIONS))
         best = max(range(len(cis)), key=lambda i: cis[i])
-        rows.append({**pl, "cis": cis, "best": best})
+        rows.append({**pl, "cis": cis, "best": best, "score": sppk.weighted_scores(profiles, pl["skills"])[best]})
     db = get_db()
     stats = {"players": len(players), "archived": db.execute("SELECT COUNT(*) FROM players WHERE archived=1").fetchone()[0],
              "criteria": len(criteria), "results": db.execute("SELECT COUNT(*) FROM results").fetchone()[0]}
@@ -360,8 +361,8 @@ def analysis_rows(pl, res):
     rows = [["Pemain", f"{pl['code']} - {pl['name']}"], ["Posisi terdaftar", POSITIONS[pl["position"]]],
             ["Posisi paling sesuai", res["best"]["name"]], ["Posisi diinginkan", res["target_name"]],
             ["Kesiapan posisi target", f"{res['target_readiness'] * 100:.1f}%"], [],
-            ["RANKING POSISI (TOPSIS)"], ["Rank", "Posisi", "D+", "D-", "Ci"]]
-    rows += [[i + 1, r["name"], round(r["d_plus"], 4), round(r["d_minus"], 4), round(r["ci"], 4)] for i, r in enumerate(res["ranking"])]
+            ["RANKING POSISI (TOPSIS) + SKOR PENDUKUNG Σ(bobot × nilai)"], ["Rank", "Posisi", "D+", "D-", "Ci", "Skor (1-10)"]]
+    rows += [[i + 1, r["name"], round(r["d_plus"], 4), round(r["d_minus"], 4), round(r["ci"], 4), round(r["score"], 2)] for i, r in enumerate(res["ranking"])]
     rows += [[], ["GAP SKILL & REKOMENDASI TRAINING"], ["Prioritas", "Kriteria", "Skill", "Target", "Gap", "Bobot AHP", "Skor prioritas", "Training"]]
     rows += [[i + 1, g["criterion"], g["skill"], g["target"], g["gap"], round(g["weight"], 4), round(g["priority"], 4),
               g["training"] if g["gap"] else "-"] for i, g in enumerate(res["gaps"])]
@@ -493,8 +494,8 @@ def positions_view():
                 for (cid,) in db.execute("SELECT id FROM criteria").fetchall():
                     db.execute("INSERT OR REPLACE INTO position_profile VALUES(?,?,5)", (cid, n))
                 log("input", f"Tambah posisi {name}")
-                flash(f"Posisi {name} ditambahkan dengan skor kebutuhan 5 untuk semua kriteria. "
-                      "Atur skornya di Data Master → Kriteria & Skor Kebutuhan, lalu periksa AHP.", "success")
+                flash(f"Posisi {name} ditambahkan. Matriks kepentingannya masih kosong (semua = 1, bobot sama rata): "
+                      "minta pakar mengisinya di Analisis Data → Perhitungan AHP, lalu atur target skor kebutuhan.", "warning")
             elif act == "edit":
                 idx = int(f["idx"])
                 db.execute("UPDATE positions SET name=?, description=? WHERE idx=?", (f["name"].strip(), f.get("description", "").strip(), idx))
@@ -530,7 +531,7 @@ def positions_view():
                      "alt": sum(1 for p in players if i in p["alt_list"] and not p["archived"]),
                      "used": sum(1 for p in players if p["position"] == i or p["desired_position"] == i) +
                      db.execute("SELECT COUNT(*) FROM results WHERE target_position=? OR best_position=?", (i, i)).fetchone()[0],
-                     "mode": ahp_mode_info(i)["mode"], "cr": a["cr"], "consistent": a["consistent"],
+                     "source": ahp_mode_info(i)["source"], "cr": a["cr"], "consistent": a["consistent"],
                      "top": sorted(zip([c["name"] for c in criteria], a["weights"]), key=lambda x: -x[1])[:3]})
     return render_template("positions.html", rows=rows)
 
@@ -607,8 +608,11 @@ def ahp_view():
 
 
 def ahp_mode_info(pos):
+    """Sumber matriks posisi: 'pakar' (diisi pelatih), 'contoh' (nilai awal, belum diisi pakar), 'kosong'."""
     r = get_db().execute("SELECT * FROM ahp_mode WHERE position=?", (pos,)).fetchone()
-    return dict(r) if r else {"mode": "auto", "updated_by": None, "updated_at": None}
+    if not r or r["mode"] != "manual":
+        return {"source": "kosong", "updated_by": None, "updated_at": None}
+    return {"source": "contoh" if r["updated_by"] == "contoh" else "pakar", **dict(r)}
 
 
 @app.route("/ahp/<int:pos>/matriks", methods=["GET", "POST"])
@@ -620,13 +624,8 @@ def ahp_matrix(pos):
     db = get_db()
     if request.method == "POST":
         user = current_user()["username"]
-        if request.form["action"] == "reset":
-            db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
-            db.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'auto', ?, CURRENT_TIMESTAMP)", (pos, user))
-            db.commit()
-            log("input", f"Matriks AHP {POSITIONS[pos]} dikembalikan ke mode otomatis")
-            flash(f"Matriks {POSITIONS[pos]} kembali dihitung otomatis dari skor kebutuhan.", "success")
-            return redirect(url_for("ahp_view", pos=pos))
+        if request.form.get("action") != "save":
+            abort(400)
         n = len(criteria)
         m = [[1.0] * n for _ in range(n)]
         db.execute("DELETE FROM pairwise WHERE position=?", (pos,))
@@ -638,7 +637,7 @@ def ahp_matrix(pos):
         db.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'manual', ?, CURRENT_TIMESTAMP)", (pos, user))
         db.commit()
         a = sppk.ahp(profiles[pos], m)
-        log("input", f"Isi matriks perbandingan AHP manual {POSITIONS[pos]} (CR={a['cr']:.4f})")
+        log("input", f"Simpan matriks kepentingan pakar {POSITIONS[pos]} (CR={a['cr']:.4f}); bobot & konsistensi dihitung ulang")
         if a["consistent"]:
             flash(f"Matriks {POSITIONS[pos]} disimpan. CR = {a['cr']:.4f} (konsisten).", "success")
         else:
@@ -647,7 +646,7 @@ def ahp_matrix(pos):
         return redirect(url_for("ahp_view", pos=pos))
     a = sppk.ahp_pos(profiles, pos)
     return render_template("ahp_matrix.html", pos=pos, criteria=criteria, a=a, mode_info=ahp_mode_info(pos),
-                           auto=sppk.pairwise_matrix(profiles[pos]), saaty=sppk.SAATY, RI=sppk.RI)
+                           saaty=sppk.SAATY, RI=sppk.RI)
 
 
 @app.route("/topsis")
@@ -672,8 +671,9 @@ def topsis_view():
     ex_pos = min(int(request.args.get("ap", st["order"][0])), len(POSITIONS) - 1)
     example = sppk.position_matrix_example(names, st, ex_pos, ec) + sppk.topsis_example(names, POSITIONS, st, ex_pos, ec)
     summary = sppk.topsis_all(profiles, players)
+    scores = {pl["id"]: sppk.weighted_scores(profiles, pl["skills"]) for pl in players}
     return render_template("topsis.html", view=view, criteria=criteria, players=players, st=st, example=example,
-                           ep=ep, ec=ec, ex_pos=ex_pos, summary=summary)
+                           ep=ep, ec=ec, ex_pos=ex_pos, summary=summary, scores=scores)
 
 
 @app.route("/ahp/export.<fmt>")
