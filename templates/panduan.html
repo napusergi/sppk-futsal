@@ -8,18 +8,19 @@
 .doc p,.doc li{max-width:75ch}
 .toc a{display:block;padding:3px 0;color:inherit;text-decoration:none;font-size:.9rem}.toc a:hover{color:var(--court)}
 .role-tag{font-size:.7rem;vertical-align:middle}
+.toc-panel{position:sticky;top:84px;z-index:1;max-height:calc(100vh - 100px);overflow-y:auto}
 </style>
 <h1>Panduan Penggunaan</h1>
 <p class="text-muted">Fungsi dan cara memakai setiap halaman. {% if user %}Anda masuk sebagai <b>{{ ROLE_LABEL[user.role] }}</b>{{ ', jadi panduan menampilkan halaman yang bisa Anda akses' if not coach }}.{% else %}Login untuk melihat panduan halaman sesuai hak akses Anda.{% endif %}
 Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah atas membuka bagian panduan untuk halaman yang sedang dibuka.</p>
 <div class="row g-4">
- <div class="col-lg-3 d-none d-lg-block"><div class="card sticky-top" style="top:16px"><div class="card-body toc">
+ <div class="col-lg-3 d-none d-lg-block"><div class="card toc-panel"><div class="card-body toc">
   <div class="text-muted small text-uppercase mb-1">Isi</div>
   <a href="#alur">Alur kerja &amp; metode</a><a href="#tabel">Menggunakan tabel data</a><a href="#metodologi">Kerangka metodologi</a><a href="#home">Beranda</a><a href="#register">Buat akun</a><a href="#login">Login &amp; hak akses</a>
   {% if coach %}<a href="#index">Dashboard</a><a href="#players">Data Pemain</a><a href="#player_form">Tambah / Ubah Pemain</a>{% endif %}
   {% if user %}<a href="#player_detail">Analisis Pemain</a>{% endif %}
   {% if coach %}<a href="#positions_view">Posisi</a><a href="#criteria_view">Kriteria</a><a href="#trainings_view">Rekomendasi Training</a>{% endif %}
-  {% if user %}<a href="#ahp_view">Perhitungan AHP</a>{% endif %}{% if coach %}<a href="#ahp_matrix">Isi Matriks Perbandingan</a>{% endif %}
+  {% if user %}<a href="#ahp_view">Perhitungan AHP</a>{% endif %}{% if coach %}<a href="#ahp_matrix">Isi Matriks Kepentingan Pakar</a>{% endif %}
   {% if coach %}<a href="#topsis_view">Perhitungan TOPSIS</a>{% endif %}
   {% if user %}<a href="#results">Riwayat Hasil</a>{% endif %}
   {% if coach %}<a href="#logs">Log Aktivitas</a>{% endif %}{% if is_super %}<a href="#users">Akun &amp; Approval</a>{% endif %}
