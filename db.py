@@ -15,9 +15,6 @@ CREATE TABLE IF NOT EXISTS users(
   created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS criteria(
   id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, training TEXT NOT NULL, sort_order INTEGER DEFAULT 0);
-CREATE TABLE IF NOT EXISTS position_profile(
-  criterion_id INTEGER REFERENCES criteria(id) ON DELETE CASCADE, position INTEGER,
-  score INTEGER NOT NULL CHECK(score BETWEEN 1 AND 9), PRIMARY KEY(criterion_id, position));
 CREATE TABLE IF NOT EXISTS players(
   id INTEGER PRIMARY KEY, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, position INTEGER NOT NULL,
   alt_positions TEXT DEFAULT '', desired_position INTEGER, assessment TEXT DEFAULT 'Tes objektif',
@@ -55,19 +52,19 @@ DEFAULT_POSITIONS = [
     ("Pivot", "Penyerang target: menahan bola membelakangi gawang, kontrol bola, dan finishing."),
 ]
 
-# nama, training, skor kebutuhan [GK, Anchor, Ala, Pivot] (1-9: High=9, Medium=5, Low=1)
+# nama kriteria, latihan awal
 CRITERIA = [
-    ("Passing", "Rondo drills, passing under pressure", [5, 9, 7, 5]),
-    ("Shooting", "Finishing drills di area sempit, shooting accuracy", [1, 5, 7, 9]),
-    ("Dribbling", "Cone dribble, duel 1v1", [1, 3, 9, 7]),
-    ("Ball Control", "Shielding bola, kontrol di ruang sempit", [5, 7, 9, 9]),
-    ("Positioning", "Latihan defensive shape, simulasi transisi", [9, 9, 5, 5]),
-    ("Decision Making", "Small-sided games, latihan situasi cepat", [7, 9, 7, 7]),
-    ("Communication", "Latihan koordinasi tim, role-play defensive calls", [9, 9, 5, 5]),
-    ("Stamina", "Interval sprint, aerobic endurance", [3, 7, 9, 7]),
-    ("Agility", "Ladder drills, side-to-side shuffles", [9, 5, 9, 5]),
-    ("Strength/Shielding", "Core stability, squat, latihan duel fisik", [5, 9, 3, 9]),
-    ("Reflex", "Reaction ball, save drills jarak dekat, latihan refleks 1v1 kiper", [9, 1, 1, 1]),
+    ("Passing", "Rondo drills, passing under pressure"),
+    ("Shooting", "Finishing drills di area sempit, shooting accuracy"),
+    ("Dribbling", "Cone dribble, duel 1v1"),
+    ("Ball Control", "Shielding bola, kontrol di ruang sempit"),
+    ("Positioning", "Latihan defensive shape, simulasi transisi"),
+    ("Decision Making", "Small-sided games, latihan situasi cepat"),
+    ("Communication", "Latihan koordinasi tim, role-play defensive calls"),
+    ("Stamina", "Interval sprint, aerobic endurance"),
+    ("Agility", "Ladder drills, side-to-side shuffles"),
+    ("Strength/Shielding", "Core stability, squat, latihan duel fisik"),
+    ("Reflex", "Reaction ball, save drills jarak dekat, latihan refleks 1v1 kiper"),
 ]
 
 # kode, nama, posisi utama, posisi alternatif, posisi diinginkan, catatan, skill (urut CRITERIA, 1-10)
@@ -112,6 +109,7 @@ def init_db(reset=False):
     con = sqlite3.connect(DB_PATH)
     migrate_users(con)
     con.executescript(SCHEMA)
+    con.execute("DROP TABLE IF EXISTS position_profile")  # skor kebutuhan posisi tidak dipakai lagi
     if con.execute("SELECT COUNT(*) FROM criteria").fetchone()[0] == 0:
         seed(con)
     if con.execute("SELECT COUNT(*) FROM positions").fetchone()[0] == 0:
@@ -127,24 +125,33 @@ def init_db(reset=False):
     con.close()
 
 
-def seed_example_matrices(con):
-    """Posisi yang belum punya matriks pakar diberi matriks CONTOH (updated_by='contoh').
+# Matriks CONTOH (nilai awal simulasi, wajib diganti penilaian pakar): sel di atas diagonal per posisi,
+# urut pasangan (C1,C2), (C1,C3), …, (C10,C11) sesuai urutan CRITERIA.
+EXAMPLE_MATRICES = [
+    "5 5 1 1/5 1/3 1/5 3 1/5 1 1/5 1 1/5 1/9 1/7 1/9 1/3 1/9 1/5 1/9 1/5 1/9 1/7 1/9 1/3 1/9 1/5 1/9 1/5 1/3 1/5 3 1/5 1 1/5 3 1 7 1 5 1 1/3 5 1/3 3 1/3 7 1 5 1 1/7 1/3 1/7 5 1 1/5",
+    "5 7 3 1 1 1 3 5 1 9 3 1/3 1/5 1/5 1/5 1/3 1 1/5 5 1/5 1/7 1/7 1/7 1/5 1/3 1/7 3 1/3 1/3 1/3 1 3 1/3 7 1 1 3 5 1 9 1 3 5 1 9 3 5 1 9 3 1/3 7 1/5 5 9",
+    "1 1/3 1/3 3 1 3 1/3 1/3 5 7 1/3 1/3 3 1 3 1/3 1/3 5 7 1 5 3 5 1 1 7 9 5 3 5 1 1 7 9 1/3 1 1/5 1/5 3 5 3 1/3 1/3 5 7 1/5 1/5 3 5 1 7 9 7 9 3",
+    "1/5 1/3 1/5 1 1/3 1 1/3 1 1/5 5 3 1 5 3 5 3 5 1 9 1/3 3 1 3 1 3 1/3 7 5 3 5 3 5 1 9 1/3 1 1/3 1 1/5 5 3 1 3 1/3 7 1/3 1 1/5 5 3 1/3 7 1/5 5 9",
+]
 
-    Nilai contoh = penilaian awal berbasis skor kebutuhan; wajib diganti penilaian pakar.
-    Mode otomatis tidak dipakai lagi: perhitungan selalu membaca matriks tersimpan.
+
+def seed_example_matrices(con):
+    """Posisi bawaan yang belum punya matriks diberi matriks CONTOH (updated_by='contoh').
+
+    Hanya berlaku bila kriteria masih 11 kriteria bawaan; posisi/kriteria baru dimulai dari matriks kosong (semua = 1).
     """
-    from sppk import pairwise_matrix
-    cids = [r[0] for r in con.execute("SELECT id FROM criteria ORDER BY sort_order, id")]
-    for (p,) in con.execute("SELECT idx FROM positions").fetchall():
-        row = con.execute("SELECT mode FROM ahp_mode WHERE position=?", (p,)).fetchone()
-        if row and row[0] == "manual":
+    from sppk import parse_saaty
+    crit = con.execute("SELECT id, name FROM criteria ORDER BY sort_order, id").fetchall()
+    if [r[1] for r in crit] != [c[0] for c in CRITERIA]:
+        return
+    cids = [r[0] for r in crit]
+    for (p,) in con.execute("SELECT idx FROM positions WHERE idx < ?", (len(EXAMPLE_MATRICES),)).fetchall():
+        if con.execute("SELECT 1 FROM ahp_mode WHERE position=?", (p,)).fetchone():
             continue
-        prof = dict(con.execute("SELECT criterion_id, score FROM position_profile WHERE position=?", (p,)).fetchall())
-        m = pairwise_matrix([prof.get(c, 5) for c in cids])
-        con.execute("DELETE FROM pairwise WHERE position=?", (p,))
+        vals = iter(EXAMPLE_MATRICES[p].split())
         for i in range(len(cids)):
             for j in range(i + 1, len(cids)):
-                con.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (p, cids[i], cids[j], m[i][j]))
+                con.execute("INSERT INTO pairwise VALUES(?,?,?,?)", (p, cids[i], cids[j], parse_saaty(next(vals))))
         con.execute("INSERT OR REPLACE INTO ahp_mode VALUES(?, 'manual', 'contoh', CURRENT_TIMESTAMP)", (p,))
 
 
@@ -172,10 +179,8 @@ def migrate_users(con):
 
 
 def seed(con):
-    for i, (name, training, prof) in enumerate(CRITERIA):
-        cid = con.execute("INSERT INTO criteria(name,training,sort_order) VALUES(?,?,?)", (name, training, i)).lastrowid
-        for p, s in enumerate(prof):
-            con.execute("INSERT INTO position_profile VALUES(?,?,?)", (cid, p, s))
+    for i, (name, training) in enumerate(CRITERIA):
+        con.execute("INSERT INTO criteria(name,training,sort_order) VALUES(?,?,?)", (name, training, i))
     cids = [r[0] for r in con.execute("SELECT id FROM criteria ORDER BY sort_order")]
     con.execute("INSERT INTO users(username,password_hash,role,full_name) VALUES(?,?,?,?)",
                 ("pelatih", generate_password_hash("pelatih123"), "pelatih", "Coach Utama"))

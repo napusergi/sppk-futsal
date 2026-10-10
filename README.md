@@ -34,7 +34,7 @@ Password disimpan sebagai hash; Super Admin dapat menetapkan password baru (dita
 
 ## Metode
 
-Model: **hibrida AHP–TOPSIS dengan analisis gap berbobot**. Penjelasan bagian standar, penyesuaian, dan tambahan
+Model: **hibrida AHP–TOPSIS dengan prioritas latihan berbobot**. Penjelasan bagian standar, penyesuaian, dan tambahan
 ada di halaman Panduan → *Kerangka metodologi*.
 
 1. **Hierarki AHP** — Tujuan: posisi terbaik → Kriteria: 11 skill (bisa CRUD) → Alternatif: Goalkeeper, Fixo/Anchor, Ala/Flank, Pivot.
@@ -42,15 +42,15 @@ ada di halaman Panduan → *Kerangka metodologi*.
    = kebalikan) di Analisis Data → Perhitungan AHP → *Isi matriks pakar*. Pemain baru cukup diisi nilai skill 1–10; matriks tersimpan dipakai
    otomatis, dan koreksi matriks memicu hitung ulang bobot & CR. Matriks hanya bisa disimpan bila konsisten (tombol
    *Cek Konsistensi* → *SIMPAN*; bila CR ≥ 0,1 ditolak dengan alasan dan petunjuk pasangan yang bertentangan). Data awal memuat matriks berlabel *Contoh* yang harus diganti penilaian pakar.
-   Skor kebutuhan 1–9 per posisi hanya dipakai sebagai target analisis gap.
    Bobot = rata-rata baris matriks ternormalisasi; dihitung λmax, CI = (λmax − n)/(n − 1), CR = CI/RI (valid jika CR < 0,1).
 3. **TOPSIS (penentu rekomendasi)** — satu perhitungan per pemain: alternatif = 4 posisi,
    matriks keputusan `x_pj` = bobot AHP kriteria j pada posisi p, bobot kriteria `w_j = s_j / Σs` (profil skill pemain),
    semua kriteria benefit. Normalisasi vektor → matriks terbobot → A⁺/A⁻ → D⁺/D⁻ → Cᵢ = D⁻/(D⁺ + D⁻).
    Posisi dengan Cᵢ tertinggi = posisi paling sesuai. Skor pendukung per posisi = Σ(bobot AHP × nilai skill), skala 1–10. Sebagai **pembanding**, TOPSIS per posisi dengan alternatif = pemain aktif
    tetap tersedia untuk melihat pemain terbaik di tiap posisi.
-4. **Gap skill** — target = skor kebutuhan posisi dikonversi ke 1–10 (`round(s/9 × 10)`), gap = max(0, target − skill),
-   skor prioritas = gap × bobot AHP posisi target. Diurutkan → prioritas upgrade → dipetakan ke training kriteria.
+4. **Prioritas latihan** — tanpa nilai ideal posisi: kekurangan = 10 − skill,
+   skor prioritas = kekurangan × bobot AHP posisi target. Diurutkan → 5 kriteria teratas → dipetakan ke training kriteria.
+   Kesiapan posisi = Σ(bobot AHP × skill) / 10.
 
 ## Fitur
 
@@ -59,7 +59,7 @@ ada di halaman Panduan → *Kerangka metodologi*.
 - Halaman terpisah **Perhitungan AHP** (hierarki, matriks, normalisasi, bobot, (Aw)/w, λmax, CI, CR) dan
   **Perhitungan TOPSIS** (X, R, V, A⁺, A⁻, D⁺, D⁻, Cᵢ, rank), masing-masing dengan **export PDF & Excel**
   berisi langkah lengkap untuk keempat posisi (PDF A4 landscape, kode kriteria C1…Cn + keterangan).
-- **Data Master**: Data Pemain, Posisi (tambah/ubah/hapus, minimal 2), Kriteria & Skor Kebutuhan, dan Rekomendasi Training (beberapa latihan per kriteria dengan durasi & level).
+- **Data Master**: Data Pemain, Posisi (tambah/ubah/hapus, minimal 2), Kriteria, dan Rekomendasi Training (beberapa latihan per kriteria dengan durasi & level).
 - Manajemen pemain: tambah, ubah (termasuk posisi alternatif), arsip/pulihkan — tidak ada hapus.
 - Hasil perhitungan disimpan sebagai snapshot; log kategori input, perhitungan, rekomendasi, akses (export CSV).
 - Tiga role: Super Admin, Pelatih, Pemain; pendaftaran mandiri dengan approval; pemain hanya melihat data, hasil, dan riwayat miliknya.

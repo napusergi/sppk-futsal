@@ -1,4 +1,4 @@
-"""Mesin perhitungan SPPK: AHP (bobot kriteria) dan TOPSIS (ranking kecocokan posisi) + analisis gap."""
+"""Mesin perhitungan SPPK: AHP (bobot kriteria) dan TOPSIS (ranking kecocokan posisi) + prioritas latihan berbobot."""
 import math
 
 POSITIONS = ["Goalkeeper", "Fixo/Anchor", "Ala/Flank", "Pivot"]
@@ -8,43 +8,29 @@ RI = {1: 0, 2: 0, 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41,
       9: 1.45, 10: 1.49, 11: 1.51, 12: 1.48, 13: 1.56, 14: 1.57, 15: 1.59}
 
 
-def category(score):
-    """Kategori kualitatif dari skor kebutuhan 1-9."""
-    return "High" if score >= 7 else "Medium" if score >= 4 else "Low"
-
-
-def pairwise_matrix(scores):
-    """Matriks berpasangan dari skor kebutuhan (1-9); HANYA dipakai untuk mengisi nilai CONTOH awal (db.py).
-
-    Selisih d = s_i - s_j  ->  a_ij = d + 1 (d >= 0)  atau  1 / (1 - d) (d < 0), dibatasi skala Saaty 1-9.
-    """
-    m = []
-    for a in scores:
-        row = []
-        for b in scores:
-            d = a - b
-            row.append(min(9, d + 1) if d >= 0 else 1 / min(9, 1 - d))
-        m.append(row)
-    return m
-
+SKILL_MAX = 10           # skala skill 1-10
+TOP_RECOMMENDATIONS = 5  # jumlah kriteria yang direkomendasikan latihan
 
 SAATY = [9, 8, 7, 6, 5, 4, 3, 2, 1, 1 / 2, 1 / 3, 1 / 4, 1 / 5, 1 / 6, 1 / 7, 1 / 8, 1 / 9]
 SAATY_LABEL = {1: "sama penting", 3: "sedikit lebih penting", 5: "lebih penting", 7: "sangat lebih penting", 9: "mutlak lebih penting"}
 
 
 class Profiles(dict):
-    """Skor kebutuhan per posisi {pos: [skor]} + matriks perbandingan manual dari pelatih {pos: matriks}."""
+    """Matriks kepentingan tersimpan per posisi {pos: matriks} + sumbernya {pos: 'pakar' | 'contoh' | 'kosong'}."""
 
-    def __init__(self, *a, matrices=None, **k):
+    def __init__(self, *a, **k):
         super().__init__(*a, **k)
-        self.matrices = matrices or {}
-        self.sources = {}  # pos -> 'pakar' | 'contoh' | 'kosong'
+        self.sources = {}
+
+    @property
+    def matrices(self):
+        return self
 
 
 
 def ahp_pos(profiles, p):
     """AHP untuk posisi p memakai matriks kepentingan tersimpan (diisi pakar sekali di awal)."""
-    return ahp(profiles[p], getattr(profiles, "matrices", {}).get(p))
+    return ahp(profiles[p])
 
 
 def parse_saaty(text):
@@ -54,14 +40,11 @@ def parse_saaty(text):
     return min(9.0, max(1 / 9, v))
 
 
-def ahp(scores, matrix=None):
-    """Hitung bobot (rata-rata baris matriks ternormalisasi), lambda max, CI, CR.
-
-    matrix=None -> matriks otomatis dari skor kebutuhan; selain itu matriks penilaian pelatih (manual).
-    """
-    n = len(scores)
-    manual = matrix is not None
-    m = matrix if manual else pairwise_matrix(scores)
+def ahp(matrix):
+    """Hitung bobot (rata-rata baris matriks ternormalisasi), lambda max, CI, CR dari matriks kepentingan pakar."""
+    n = len(matrix)
+    manual = True
+    m = matrix
     col_sum = [sum(m[i][j] for i in range(n)) for j in range(n)]
     norm = [[m[i][j] / col_sum[j] for j in range(n)] for i in range(n)]
     w = [sum(r) / n for r in norm]
@@ -137,24 +120,17 @@ def _frac(v):
     return f"1/{int(round(1 / v))}" if abs(1 / v - round(1 / v)) < 1e-6 else f"{v:.3f}"
 
 
-def ahp_example(names, scores, a, i=0, j=1):
+def ahp_example(names, a, i=0, j=1):
     """Contoh perhitungan AHP langkah demi langkah dengan angka nyata. Return list (judul, rumus, substitusi)."""
     n, m, w = a["n"], a["matrix"], a["weights"]
     ci_, cj = names[i], names[j]
-    d = scores[i] - scores[j]
     aij = m[i][j]
     col = [m[k][i] for k in range(n)]
     row = a["normalized"][i]
-    rule = f"d = {d} ≥ 0 → a = d + 1" if d >= 0 else f"d = {d} < 0 → a = 1/(1 − d)"
-    if a.get("manual"):
-        lbl = SAATY_LABEL.get(round(aij)) if aij >= 1 else None
-        step1 = ("1. Elemen matriks perbandingan (penilaian pakar, ditetapkan sekali)",
-                 "aᵢⱼ = penilaian pakar pada skala Saaty 1–9 ;  aⱼᵢ = 1/aᵢⱼ ;  aᵢᵢ = 1",
-                 f"Pelatih menilai {ci_} vs {cj} = {_frac(aij)}{' (' + lbl + ')' if lbl else ''};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
-    else:
-        step1 = ("1. Elemen matriks perbandingan (otomatis)",
-                 "d = sᵢ − sⱼ ;  aᵢⱼ = d + 1 jika d ≥ 0,  aᵢⱼ = 1/(1 − d) jika d < 0  (maks. 9) ;  aⱼᵢ = 1/aᵢⱼ",
-                 f"{ci_} vs {cj}: d = {scores[i]} − {scores[j]} = {d};  {rule} = {_frac(aij)};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
+    lbl = SAATY_LABEL.get(round(aij)) if aij >= 1 else None
+    step1 = ("1. Elemen matriks perbandingan (penilaian pakar, ditetapkan sekali)",
+             "aᵢⱼ = penilaian pakar pada skala Saaty 1–9 ;  aⱼᵢ = 1/aᵢⱼ ;  aᵢᵢ = 1",
+             f"Pakar menilai {ci_} vs {cj} = {_frac(aij)}{' (' + lbl + ')' if lbl else ''};  maka a({cj},{ci_}) = {_frac(m[j][i])}")
     return [
         step1,
         ("2. Jumlah kolom",
@@ -217,11 +193,6 @@ def topsis_example(names, codes, st, p=0, j=0):
     ]
 
 
-def target_level(score):
-    """Konversi skor kebutuhan 1-9 ke target skill skala 1-10."""
-    return round(score / 9 * 10)
-
-
 def position_topsis(profiles, skills):
     """TOPSIS per pemain dengan alternatif = posisi (penentu posisi terbaik).
 
@@ -271,19 +242,22 @@ def analyze(criteria, profiles, players, player_id, target_pos):
     ranking = [{"pos": p, "name": POSITIONS[p], "score": scores[p], **pt["res"][p]} for p in range(len(POSITIONS))]
     ranking.sort(key=lambda x: x["ci"], reverse=True)
 
+    # Prioritas latihan tanpa nilai ideal: kekurangan = 10 − skill (jarak ke skor maksimal),
+    # prioritas = kekurangan × bobot AHP posisi target -> skill penting yang masih rendah muncul paling atas.
     w = ahps[target_pos]["weights"]
     skills = players[idx]["skills"]
     gaps = []
     for i, c in enumerate(criteria):
-        t = target_level(profiles[target_pos][i])
-        g = max(0, t - skills[i])
+        g = SKILL_MAX - skills[i]
         gaps.append({"criterion": c["name"], "training": c["training"], "trainings": c.get("trainings", []), "skill": skills[i],
-                     "target": t, "gap": g, "weight": w[i], "priority": g * w[i]})
+                     "gap": g, "weight": w[i], "priority": g * w[i]})
     gaps.sort(key=lambda x: x["priority"], reverse=True)
-    fit = 1 - sum(x["priority"] for x in gaps) / (sum(w[i] * target_level(profiles[target_pos][i]) for i in range(len(w))) or 1)
+    recs = [g for g in gaps if g["gap"] > 0][:TOP_RECOMMENDATIONS]
+    readiness = sum(w[i] * skills[i] for i in range(len(w))) / SKILL_MAX
+    wmax = max(w) or 1
     return {"ranking": ranking, "best": ranking[0], "target": target_pos, "target_name": POSITIONS[target_pos],
-            "gaps": gaps, "recommendations": [g for g in gaps if g["gap"] > 0],
-            "target_readiness": fit, "target_profile": [target_level(s) for s in profiles[target_pos]]}
+            "gaps": gaps, "recommendations": recs, "target_readiness": readiness,
+            "importance_profile": [round(x / wmax * SKILL_MAX, 2) for x in w]}
 
 
 def topsis_all(profiles, players):

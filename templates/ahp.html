@@ -6,10 +6,10 @@
  <div><a class="btn btn-sm btn-outline-danger" href="{{ url_for('export_ahp', fmt='pdf') }}" target="_blank">Export PDF</a>
  <a class="btn btn-sm btn-court" href="{{ url_for('export_ahp', fmt='xlsx') }}">Export Excel</a></div>
 </div>
-<p class="note">Laporan PDF/Excel memuat seluruh langkah untuk semua posisi: sumber matriks, skor kebutuhan, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
+<p class="note">Laporan PDF/Excel memuat seluruh langkah untuk semua posisi: sumber matriks, matriks berpasangan, normalisasi, bobot, dan uji konsistensi.</p>
 <div class="card mb-3"><div class="card-body small">
  <h2 class="h5">Kerangka metode</h2>
- <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking semua posisi, lalu analisis gap memakai bobot yang sama untuk menentukan prioritas latihan.</p>
+ <p class="mb-2">Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan prioritas latihan berbobot</b>: AHP menghasilkan bobot kriteria tiap posisi, TOPSIS per pemain memakai bobot itu sebagai matriks keputusan untuk meranking semua posisi, lalu bobot yang sama dipakai untuk menentukan prioritas latihan.</p>
  <p class="mb-0">Matriks kepentingan antar-kriteria <b>ditetapkan sekali oleh pakar</b> (pelatih) untuk setiap posisi. Setiap kali pemain baru ditambahkan, sistem memakai matriks tersimpan ini untuk bobot dan ranking; pemain cukup diisi nilai skill 1–10. Bila pakar mengoreksi matriks, bobot dan konsistensi (CR) dihitung ulang. <a href="{{ url_for('panduan') }}#metodologi">Penjelasan lengkap</a></p>
 </div></div>
 <div class="card mb-3"><div class="card-body">

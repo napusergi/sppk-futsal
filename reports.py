@@ -130,12 +130,10 @@ def ahp_pdf(criteria, profiles):
     el = [P("Laporan Perhitungan AHP — Bobot Kriteria per Posisi", S["h1"]),
           P("Hierarki: <b>Tujuan</b> menentukan posisi terbaik pemain futsal → <b>Kriteria</b> "
                     f"{len(criteria)} skill → <b>Alternatif</b> {', '.join(POSITIONS)}.", S["p"]),
-          P("Model: hibrida AHP–TOPSIS dengan analisis gap berbobot; AHP menghasilkan bobot kriteria per posisi. "
+          P("Model: hibrida AHP–TOPSIS dengan prioritas latihan berbobot; AHP menghasilkan bobot kriteria per posisi. "
             "Matriks kepentingan antar-kriteria ditetapkan <b>sekali oleh pakar</b> (pelatih) per posisi pada skala Saaty 1–9; "
             "setiap pemain baru dinilai memakai matriks tersimpan ini. Matriks berlabel <b>contoh</b> adalah nilai awal untuk simulasi yang "
-            "harus diganti penilaian pakar. Nilai contoh dibentuk dari "
-            "skor kebutuhan 1–9 (High = 9, Medium = 5, Low = 1): d = s<sub>i</sub> − s<sub>j</sub>; "
-                    "a<sub>ij</sub> = d + 1 (d ≥ 0), a<sub>ij</sub> = 1/(1 − d) (d &lt; 0), dibatasi 1–9. "
+            "harus diganti penilaian pakar. "
                     "Bobot w<sub>i</sub> = rata-rata baris matriks ternormalisasi (a<sub>ij</sub>/Σ<sub>i</sub>a<sub>ij</sub>). "
                     "λmax = rata-rata (Aw)<sub>i</sub>/w<sub>i</sub>; CI = (λmax − n)/(n − 1); CR = CI/RI; konsisten bila CR &lt; 0,1.", S["p"]),
           Spacer(1, 4), _legend(criteria, S)]
@@ -151,7 +149,6 @@ def ahp_pdf(criteria, profiles):
 
     for p, pos in enumerate(POSITIONS):
         a = al[p]
-        s = profiles[p]
         n = a["n"]
         el += [PageBreak(), P(f"AHP — {pos}", S["h2"]),
                P("Hasil: bobot prioritas kriteria (vektor prioritas AHP)", S["h3"]),
@@ -173,7 +170,7 @@ def ahp_pdf(criteria, profiles):
                          f"RI(n={n}) = {a['ri']};  CR = {a['ci']:.4f}/{a['ri']} = <b>{a['cr']:.4f}</b> → "
                          f"<b>{'KONSISTEN' if a['consistent'] else 'TIDAK KONSISTEN'}</b>", S["p"])]
         el += [P(f"Contoh perhitungan: {criteria[0]['name']} vs {criteria[1]['name'] if n > 1 else criteria[0]['name']}", S["h3"]),
-               _example_table(sppk.ahp_example([c["name"] for c in criteria], s, a, 0, 1 if n > 1 else 0), S)]
+               _example_table(sppk.ahp_example([c["name"] for c in criteria], a, 0, 1 if n > 1 else 0), S)]
     doc.build(el, onFirstPage=footer, onLaterPages=footer)
     buf.seek(0)
     return buf
@@ -305,7 +302,7 @@ def ahp_xlsx(criteria, profiles):
     sh = Sheet(wb.active)
     wb.active.title = "Ringkasan"
     sh.title("Perhitungan AHP — Ringkasan Bobot", 14)
-    sh.text("Model hibrida AHP–TOPSIS + analisis gap berbobot. Matriks kepentingan ditetapkan sekali oleh pakar per posisi (skala Saaty).")
+    sh.text("Model hibrida AHP–TOPSIS + prioritas latihan berbobot. Matriks kepentingan ditetapkan sekali oleh pakar per posisi (skala Saaty).")
     sh.text("Matriks berlabel 'Contoh' = nilai awal simulasi, wajib diganti penilaian pakar. Konsisten bila CR < 0,1.")
     sh.r += 1
     al = [sppk.ahp_pos(profiles, p) for p in range(len(POSITIONS))]
@@ -316,7 +313,7 @@ def ahp_xlsx(criteria, profiles):
     sh.widths(8, 16)
     sh.ws.column_dimensions["B"].width = 22
     for p, pos in enumerate(POSITIONS):
-        a, s, n = al[p], profiles[p], al[p]["n"]
+        a, n = al[p], al[p]["n"]
         sh = Sheet(wb.create_sheet(sheet_name(pos, wb.sheetnames)))
         sh.title(f"AHP — {pos}", 14)
         sh.title("Hasil: bobot prioritas kriteria (vektor prioritas AHP)", 11)
@@ -334,7 +331,7 @@ def ahp_xlsx(criteria, profiles):
                   ["Status", "Konsisten" if a["consistent"] else "Tidak konsisten"]])
         sh.title(f"Contoh perhitungan ({criteria[0]['name']} vs {criteria[1]['name'] if n > 1 else criteria[0]['name']})", 11)
         sh.table([["Langkah", "Rumus", "Substitusi angka"]] +
-                 [list(x) for x in sppk.ahp_example([c["name"] for c in criteria], s, a, 0, 1 if n > 1 else 0)])
+                 [list(x) for x in sppk.ahp_example([c["name"] for c in criteria], a, 0, 1 if n > 1 else 0)])
         sh.widths(14, 11)
         sh.ws.column_dimensions["B"].width = 20
     return _wb_bytes(wb)

@@ -16,7 +16,7 @@
  <div class="col-xl-5"><div class="card h-100"><div class="card-body">
   <div class="text-muted small text-uppercase">Posisi paling sesuai</div>
   <div class="big mb-1">{{ res.best.name }}</div>
-  <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}; skor pendukung {{ res.best.score|f(2) }} dari 10. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b></p>
+  <p class="text-muted">Nilai preferensi Cᵢ = {{ res.best.ci|f }}; skor pendukung {{ res.best.score|f(2) }} dari 10. Kesiapan untuk posisi {{ res.target_name }}: <b>{{ (res.target_readiness*100)|round(1) }}%</b> <span class="small">(Σ bobot AHP × skill ÷ 10)</span></p>
   <table class="table table-sm align-middle dt" id="tbl-ranking" data-per-page="5">
    <thead><tr><th>#</th><th>Posisi</th><th class="num">D⁺</th><th class="num">D⁻</th><th class="num">Cᵢ</th><th class="num" title="Skor pendukung = Σ(bobot AHP × nilai skill), skala 1–10">Skor</th><th></th></tr></thead>
    {% for r in res.ranking %}<tr><td>{{ loop.index }}</td><td>{{ r.name }}{% if loop.first %} <span class="badge bg-success">terbaik</span>{% endif %}</td>
@@ -33,7 +33,8 @@
   </div>
  </div></div></div>
  <div class="col-xl-7"><div class="card h-100"><div class="card-body">
-  <h2 class="h4">Radar skill vs kebutuhan {{ res.target_name }}</h2>
+  <h2 class="h4">Radar skill vs kepentingan kriteria {{ res.target_name }}</h2>
+  <p class="small text-muted mb-1">Garis putus-putus = bobot AHP posisi {{ res.target_name }} diskalakan ke 0–10 (kriteria terpenting = 10).</p>
   <div style="position:relative;height:360px"><canvas id="radar"></canvas></div>
  </div></div></div>
  <div class="col-12"><div class="card"><div class="card-body">
@@ -45,14 +46,14 @@
   <div class="collapse mt-3" id="ptSteps">{{ position_steps(pt, criteria) }}</div>
  </div></div></div>
  <div class="col-12"><div class="card"><div class="card-body">
-  <h2 class="h4">Gap skill &amp; prioritas upgrade</h2>
-  <p class="note">Target = skor kebutuhan posisi (1–9) dikonversi ke skala 1–10. Skor prioritas = gap × bobot AHP posisi {{ res.target_name }}.</p>
+  <h2 class="h4">Prioritas peningkatan skill</h2>
+  <p class="note">Kekurangan = 10 − skill (jarak ke nilai maksimal). Skor prioritas = kekurangan × bobot AHP posisi {{ res.target_name }}, sehingga skill yang penting untuk posisi itu dan nilainya masih rendah muncul paling atas. {{ res.recommendations|length }} kriteria teratas direkomendasikan latihan.</p>
   {% set mx = (res.gaps|map(attribute='priority')|max) or 1 %}
   <div class="table-responsive"><table class="table table-sm align-middle dt" id="tbl-gap" data-per-page="25">
-   <thead><tr><th>#</th><th>Kriteria</th><th class="num">Skill</th><th class="num">Target</th><th class="num">Gap</th><th class="num">Bobot</th><th class="num">Prioritas</th><th>Status</th><th></th></tr></thead>
-   {% for g in res.gaps %}<tr><td>{{ loop.index }}</td><td>{{ g.criterion }}</td><td class="num">{{ g.skill }}</td><td class="num">{{ g.target }}</td><td class="num">{{ g.gap }}</td>
+   <thead><tr><th>#</th><th>Kriteria</th><th class="num">Skill</th><th class="num">Kekurangan</th><th class="num">Bobot</th><th class="num">Prioritas</th><th>Status</th><th></th></tr></thead>
+   {% for g in res.gaps %}<tr><td>{{ loop.index }}</td><td>{{ g.criterion }}</td><td class="num">{{ g.skill }}</td><td class="num">{{ g.gap }}</td>
     <td class="num">{{ g.weight|f(4) }}</td><td class="num">{{ g.priority|f(4) }}</td>
-    <td>{% if g.gap %}<span class="badge bg-danger-subtle text-danger-emphasis">perlu upgrade</span>{% else %}<span class="badge bg-success-subtle text-success-emphasis">memenuhi</span>{% endif %}</td>
+    <td>{% if g in res.recommendations %}<span class="badge bg-danger-subtle text-danger-emphasis">direkomendasikan</span>{% elif g.gap %}<span class="badge text-bg-light border">dipertahankan</span>{% else %}<span class="badge bg-success-subtle text-success-emphasis">maksimal</span>{% endif %}</td>
     <td><div class="bar o"><i style="width:{{ g.priority/mx*100 }}%"></i></div></td></tr>{% endfor %}
   </table></div>
  </div></div></div>
@@ -60,11 +61,11 @@
   <h2 class="h4">Rekomendasi training</h2>
   {% if res.recommendations %}<ol class="mb-0">{% for g in res.recommendations %}
    <li class="mb-2"><b>{{ g.criterion }}</b> <span class="badge {{ 'bg-danger' if loop.index <= 3 else 'bg-secondary' }}">{{ 'mendesak' if loop.index <= 3 else 'lanjutan' }}</span>
-    <span class="text-muted small">gap {{ g.gap }} · prioritas {{ g.priority|f }}</span>
+    <span class="text-muted small">skill {{ g.skill }} · prioritas {{ g.priority|f }}</span>
     {% if g.trainings %}<ul class="small mb-0 mt-1">{% for t in g.trainings %}
      <li>{{ t.name }}{% if t.duration %} · {{ t.duration }}{% endif %} <span class="badge text-bg-light border">{{ t.level }}</span>{% if t.description %}<br><span class="text-muted">{{ t.description }}</span>{% endif %}</li>{% endfor %}</ul>
     {% else %}<br>{{ g.training }}{% endif %}</li>{% endfor %}</ol>
-  {% else %}<p class="mb-0">Semua skill sudah memenuhi kebutuhan posisi {{ res.target_name }}. Pertahankan dengan latihan rutin.</p>{% endif %}
+  {% else %}<p class="mb-0">Semua skill sudah bernilai maksimal. Pertahankan dengan latihan rutin.</p>{% endif %}
  </div></div></div>
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Riwayat hasil tersimpan</h2>
@@ -79,6 +80,6 @@
 new Chart(document.getElementById("radar"),{type:"radar",
  data:{labels:{{ criteria|map(attribute='name')|list|tojson }},datasets:[
   {label:"{{ p.code }} (saat ini)",data:{{ pm.skills|tojson }},borderColor:"#0f6b57",backgroundColor:"rgba(15,107,87,.18)"},
-  {label:"Target {{ res.target_name }}",data:{{ res.target_profile|tojson }},borderColor:"#e0761f",borderDash:[5,4],backgroundColor:"transparent"}]},
+  {label:"Kepentingan kriteria {{ res.target_name }}",data:{{ res.importance_profile|tojson }},borderColor:"#e0761f",borderDash:[5,4],backgroundColor:"transparent"}]},
  options:{maintainAspectRatio:false,scales:{r:{min:0,max:10,ticks:{stepSize:2}}}}});
 </script>{% endif %}{% endblock %}

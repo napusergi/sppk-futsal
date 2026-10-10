@@ -31,9 +31,9 @@
 <div class="row g-3 mb-4">
  {% for t, d in [
   ('Penilaian skill', 'Pelatih menilai ' ~ criteria|length ~ ' skill pemain pada skala 1–10, dari tes objektif, self-assessment, atau observasi.'),
-  ('Bobot AHP', 'Pelatih menetapkan kebutuhan skill tiap posisi (High/Medium/Low). AHP mengubahnya menjadi bobot kriteria yang teruji konsistensinya.'),
+  ('Bobot AHP', 'Pakar membandingkan kepentingan antar-skill untuk tiap posisi (skala Saaty). AHP mengubahnya menjadi bobot kriteria yang teruji konsistensinya.'),
   ('Ranking TOPSIS', 'Untuk setiap pemain, TOPSIS meranking semua posisi berdasarkan bobot AHP dan profil skill pemain, menghasilkan nilai kecocokan Cᵢ (0–1).'),
-  ('Gap & training', 'Selisih skill terhadap target posisi diurutkan menurut bobot, lalu dipetakan ke latihan yang spesifik.')] %}
+  ('Prioritas latihan', 'Skill yang penting untuk posisi yang diinginkan tetapi nilainya masih rendah diprioritaskan, lalu dipetakan ke latihan yang spesifik.')] %}
  <div class="col-sm-6 col-lg-3"><div class="card h-100"><div class="card-body">
   <div class="small fw-semibold" style="color:var(--ball)">Langkah {{ loop.index }}</div>
   <h3 class="h5">{{ t }}</h3><p class="small text-muted mb-0">{{ d }}</p>
@@ -64,7 +64,7 @@
  <div class="col-lg-5"><div class="card h-100"><div class="card-body">
   <h2 class="h4">Akses pengguna</h2>
   <ul class="small mb-0">
-   <li><b>Pemain:</b> melihat data, posisi terbaik, gap skill, dan rekomendasi training miliknya.</li>
+   <li><b>Pemain:</b> melihat data, posisi terbaik, prioritas peningkatan skill, dan rekomendasi training miliknya.</li>
    <li><b>Pelatih:</b> mengelola pemain, kriteria, perhitungan, hasil, dan log.</li>
    <li><b>Super Admin:</b> semua akses pelatih ditambah persetujuan akun baru dan pengelolaan password.</li>
   </ul>

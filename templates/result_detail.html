@@ -9,8 +9,8 @@
   <p class="mb-0">Target: <b>{{ res.target_name }}</b> · kesiapan {{ (res.target_readiness*100)|round(1) }}%</p>
  </div></div></div>
  <div class="col-lg-7"><div class="card"><div class="card-body">
-  <h2 class="h4">Prioritas upgrade &amp; training</h2>
-  <ol>{% for g in res.recommendations %}<li class="mb-1"><b>{{ g.criterion }}</b> (skill {{ g.skill }} → target {{ g.target }}, prioritas {{ g.priority|f }})<br>{{ g.training }}</li>{% else %}<li>Tidak ada gap.</li>{% endfor %}</ol>
+  <h2 class="h4">Prioritas peningkatan skill &amp; training</h2>
+  <ol>{% for g in res.recommendations %}<li class="mb-1"><b>{{ g.criterion }}</b> (skill {{ g.skill }}{% if g.target is defined %} → target {{ g.target }}{% endif %}, prioritas {{ g.priority|f }})<br>{{ g.training }}</li>{% else %}<li>Tidak ada rekomendasi.</li>{% endfor %}</ol>
  </div></div></div>
 </div>
 {% endblock %}

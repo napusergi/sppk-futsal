@@ -30,7 +30,7 @@ def load_positions():
 @app.context_processor
 def inject():
     u = current_user()
-    return {"POSITIONS": POSITIONS, "user": u, "category": sppk.category, "ROLE_LABEL": ROLE_LABEL,
+    return {"POSITIONS": POSITIONS, "user": u, "ROLE_LABEL": ROLE_LABEL,
             "is_staff": bool(u and u["role"] in STAFF), "is_super": bool(u and u["role"] == "superadmin"),
             "pending_count": get_db().execute("SELECT COUNT(*) FROM users WHERE status='pending'").fetchone()[0]
             if u and u["role"] == "superadmin" else 0}
@@ -112,11 +112,7 @@ def load_model(include_archived=False):
         c["trainings"] = trainings.get(c["id"], [])
         if c["trainings"]:  # teks ringkas untuk export & snapshot
             c["training"] = "; ".join(t["name"] for t in c["trainings"])
-    profiles = sppk.Profiles({p: [] for p in range(len(POSITIONS))})
-    prof = {(r["criterion_id"], r["position"]): r["score"] for r in db.execute("SELECT * FROM position_profile")}
-    for c in criteria:
-        for p in profiles:
-            profiles[p].append(prof.get((c["id"], p), 5))
+    profiles = sppk.Profiles()
     # matriks kepentingan dari pakar (tersimpan); pasangan yang belum dinilai (mis. kriteria baru) = 1
     pw = {(r["position"], r["ci"], r["cj"]): r["value"] for r in db.execute("SELECT * FROM pairwise")}
     for p in range(len(POSITIONS)):
@@ -127,7 +123,7 @@ def load_model(include_archived=False):
                 if i < j and (p, a["id"], b["id"]) in pw:
                     m[i][j] = pw[(p, a["id"], b["id"])]
                     m[j][i] = 1 / m[i][j]
-        profiles.matrices[p] = m
+        profiles[p] = m
         profiles.sources[p] = ahp_mode_info(p)["source"]
     q = "SELECT * FROM players" + ("" if include_archived else " WHERE archived=0") + " ORDER BY code"
     players = [dict(r) for r in db.execute(q)]
@@ -360,12 +356,14 @@ def save_result(pid):
 def analysis_rows(pl, res):
     rows = [["Pemain", f"{pl['code']} - {pl['name']}"], ["Posisi terdaftar", POSITIONS[pl["position"]]],
             ["Posisi paling sesuai", res["best"]["name"]], ["Posisi diinginkan", res["target_name"]],
-            ["Kesiapan posisi target", f"{res['target_readiness'] * 100:.1f}%"], [],
+            ["Kesiapan posisi target (Σ bobot × skill / 10)", f"{res['target_readiness'] * 100:.1f}%"], [],
             ["RANKING POSISI (TOPSIS) + SKOR PENDUKUNG Σ(bobot × nilai)"], ["Rank", "Posisi", "D+", "D-", "Ci", "Skor (1-10)"]]
     rows += [[i + 1, r["name"], round(r["d_plus"], 4), round(r["d_minus"], 4), round(r["ci"], 4), round(r["score"], 2)] for i, r in enumerate(res["ranking"])]
-    rows += [[], ["GAP SKILL & REKOMENDASI TRAINING"], ["Prioritas", "Kriteria", "Skill", "Target", "Gap", "Bobot AHP", "Skor prioritas", "Training"]]
-    rows += [[i + 1, g["criterion"], g["skill"], g["target"], g["gap"], round(g["weight"], 4), round(g["priority"], 4),
-              g["training"] if g["gap"] else "-"] for i, g in enumerate(res["gaps"])]
+    rec = {g["criterion"] for g in res["recommendations"]}
+    rows += [[], ["PRIORITAS LATIHAN (kekurangan = 10 − skill; prioritas = kekurangan × bobot AHP)"],
+             ["Prioritas", "Kriteria", "Skill", "Kekurangan", "Bobot AHP", "Skor prioritas", "Training"]]
+    rows += [[i + 1, g["criterion"], g["skill"], g["gap"], round(g["weight"], 4), round(g["priority"], 4),
+              g["training"] if g["criterion"] in rec else "-"] for i, g in enumerate(res["gaps"])]
     return rows
 
 
@@ -449,18 +447,14 @@ def criteria_view():
                 cid = db.execute("INSERT INTO criteria(name,training,sort_order) VALUES(?,?,(SELECT COALESCE(MAX(sort_order),0)+1 FROM criteria))",
                                  (name, tr)).lastrowid
                 db.execute("INSERT INTO trainings(criterion_id,name,duration,level) VALUES(?,?,?,?)", (cid, tr, "20 menit", "Menengah"))
-                for p in range(len(POSITIONS)):
-                    db.execute("INSERT INTO position_profile VALUES(?,?,?)", (cid, p, int(request.form.get(f"pos_{p}", 5))))
                 for (pid,) in db.execute("SELECT id FROM players").fetchall():
                     db.execute("INSERT INTO skills VALUES(?,?,5)", (pid, cid))
                 log("input", f"Tambah kriteria {name}")
-                flash(f"Kriteria {name} ditambahkan. Skill semua pemain untuk kriteria ini diisi 5 — perbarui di data pemain.", "success")
+                flash(f"Kriteria {name} ditambahkan. Skill semua pemain untuk kriteria ini diisi 5 — perbarui di data pemain. "
+                      "Perbandingan kriteria baru di matriks AHP bernilai 1 sampai pakar mengoreksinya.", "success")
             elif act == "edit":
                 cid = int(request.form["id"])
                 db.execute("UPDATE criteria SET name=? WHERE id=?", (request.form["name"].strip(), cid))
-                for p in range(len(POSITIONS)):
-                    db.execute("INSERT OR REPLACE INTO position_profile VALUES(?,?,?)",
-                               (cid, p, max(1, min(9, int(request.form.get(f"pos_{p}", 5) or 5)))))
                 log("input", f"Ubah kriteria {request.form['name']}")
                 flash("Kriteria diperbarui.", "success")
             elif act == "delete":
@@ -477,8 +471,8 @@ def criteria_view():
             db.rollback()
             flash("Nama kriteria sudah ada.", "danger")
         return redirect(url_for("criteria_view"))
-    criteria, profiles, _ = load_model()
-    return render_template("criteria.html", criteria=criteria, profiles=profiles)
+    criteria, _, _ = load_model()
+    return render_template("criteria.html", criteria=criteria)
 
 
 @app.route("/positions", methods=["GET", "POST"])
@@ -492,11 +486,9 @@ def positions_view():
                 name = f["name"].strip()
                 n = db.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
                 db.execute("INSERT INTO positions(idx,name,description) VALUES(?,?,?)", (n, name, f.get("description", "").strip()))
-                for (cid,) in db.execute("SELECT id FROM criteria").fetchall():
-                    db.execute("INSERT OR REPLACE INTO position_profile VALUES(?,?,5)", (cid, n))
                 log("input", f"Tambah posisi {name}")
                 flash(f"Posisi {name} ditambahkan. Matriks kepentingannya masih kosong (semua = 1, bobot sama rata): "
-                      "minta pakar mengisinya di Analisis Data → Perhitungan AHP, lalu atur target skor kebutuhan.", "warning")
+                      "minta pakar mengisinya di Analisis Data → Perhitungan AHP.", "warning")
             elif act == "edit":
                 idx = int(f["idx"])
                 db.execute("UPDATE positions SET name=?, description=? WHERE idx=?", (f["name"].strip(), f.get("description", "").strip(), idx))
@@ -540,12 +532,12 @@ def positions_view():
 def delete_position(db, idx):
     """Hapus posisi idx lalu geser indeks posisi di atasnya turun satu agar tetap 0..n-1."""
     db.execute("DELETE FROM positions WHERE idx=?", (idx,))
-    for t in ("position_profile", "ahp_mode", "pairwise"):
+    for t in ("ahp_mode", "pairwise"):
         db.execute(f"DELETE FROM {t} WHERE position=?", (idx,))
     n = db.execute("SELECT COUNT(*) FROM positions").fetchone()[0]
     for k in range(idx + 1, n + 1):  # urut naik: slot di bawahnya sudah kosong
         db.execute("UPDATE positions SET idx=? WHERE idx=?", (k - 1, k))
-        for t in ("position_profile", "ahp_mode", "pairwise"):
+        for t in ("ahp_mode", "pairwise"):
             db.execute(f"UPDATE {t} SET position=? WHERE position=?", (k - 1, k))
         db.execute("UPDATE players SET position=? WHERE position=?", (k - 1, k))
         db.execute("UPDATE players SET desired_position=? WHERE desired_position=?", (k - 1, k))
@@ -603,8 +595,8 @@ def ahp_view():
     a = sppk.ahp_pos(profiles, pos)
     n = len(criteria)
     ei, ej = min(int(request.args.get("ci", 0)), n - 1), min(int(request.args.get("cj", 1)), n - 1)
-    example = sppk.ahp_example([c["name"] for c in criteria], profiles[pos], a, ei, ej)
-    return render_template("ahp.html", pos=pos, criteria=criteria, scores=profiles[pos], a=a, example=example, ei=ei, ej=ej,
+    example = sppk.ahp_example([c["name"] for c in criteria], a, ei, ej)
+    return render_template("ahp.html", pos=pos, criteria=criteria, a=a, example=example, ei=ei, ej=ej,
                            summary=[sppk.ahp_pos(profiles, p) for p in range(len(POSITIONS))], mode_info=ahp_mode_info(pos))
 
 
@@ -633,7 +625,7 @@ def ahp_matrix(pos):
             for j in range(i + 1, n):
                 v = sppk.parse_saaty(request.form.get(f"a_{i}_{j}", "1"))
                 m[i][j], m[j][i] = v, 1 / v
-        a = sppk.ahp(profiles[pos], m)
+        a = sppk.ahp(m)
         if not a["consistent"]:
             # ditolak sampai konsisten: tidak ada yang tersimpan, bobot lama tetap dipakai
             log("input", f"Matriks pakar {POSITIONS[pos]} ditolak: CR={a['cr']:.4f} ≥ 0,1")

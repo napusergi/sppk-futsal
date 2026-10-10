@@ -32,26 +32,26 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <h2>Alur kerja &amp; metode</h2>
  <p>Aplikasi ini menentukan posisi futsal yang paling sesuai untuk pemain berdasarkan skill saat ini, lalu menunjukkan skill mana yang perlu ditingkatkan untuk mencapai posisi yang diinginkan.</p>
  <ol>
-  {% if coach %}<li><b>Atur kriteria</b> dan skor kebutuhan tiap posisi (1–9) di halaman Kriteria.</li>
+  {% if coach %}<li><b>Atur kriteria</b> (skill yang dinilai) di halaman Kriteria.</li>
   <li><b>Minta pakar mengisi matriks kepentingan</b> tiap posisi sekali di awal (Perhitungan AHP → <i>Isi matriks pakar</i>). Nilai CR harus di bawah 0,1. Setelah itu matriks dipakai terus untuk setiap pemain.</li>
   <li><b>Isi data dan skill pemain</b> (1–10) di halaman Data Pemain.</li>
-  <li><b>Buka Analisis Pemain</b> untuk melihat posisi terbaik, gap skill, dan rekomendasi training.</li>
+  <li><b>Buka Analisis Pemain</b> untuk melihat posisi terbaik, prioritas peningkatan skill, dan rekomendasi training.</li>
   <li><b>Simpan hasil</b> agar tercatat di riwayat dan bisa dilihat pemain, lalu export bila perlu.</li>
   {% else %}<li>Pelatih menilai skill Anda dan menjalankan perhitungan.</li>
-  <li>Anda melihat posisi yang paling sesuai, gap skill, dan rekomendasi training di halaman <b>Hasil Saya</b>.</li>
+  <li>Anda melihat posisi yang paling sesuai, prioritas peningkatan skill, dan rekomendasi training di halaman <b>Hasil Saya</b>.</li>
   <li>Hasil yang disimpan pelatih bisa dibuka kembali di halaman <b>Riwayat</b>.</li>{% endif %}
  </ol>
  <h3>Metode singkat</h3>
  <ul>
   <li><b>AHP</b> menghasilkan bobot setiap kriteria untuk tiap posisi dari matriks kepentingan antar-kriteria yang <b>ditetapkan sekali oleh pakar</b>. Pemain baru cukup diisi nilai skill 1–10; sistem memakai matriks tersimpan untuk bobot dan ranking. Lihat <a href="#metodologi">Kerangka metodologi</a>.</li>
   <li><b>TOPSIS</b> dijalankan sekali untuk setiap pemain dengan <b>alternatif = semua posisi</b>. Matriks keputusannya adalah bobot AHP tiap posisi, dan bobot kriterianya adalah profil skill pemain. Hasilnya nilai preferensi Cᵢ (0–1) untuk tiap posisi; posisi dengan Cᵢ tertinggi adalah posisi paling sesuai.</li>
-  <li><b>Gap skill</b> = target posisi (skor kebutuhan dikonversi ke 1–10) dikurangi skill pemain. <b>Prioritas</b> = gap × bobot AHP, sehingga gap pada kriteria penting muncul paling atas.</li>
+  <li><b>Prioritas latihan</b> = (10 − skill) × bobot AHP posisi yang diinginkan, sehingga skill yang penting untuk posisi itu dan nilainya masih rendah muncul paling atas. Lima kriteria teratas direkomendasikan latihan.</li>
  </ul>
 </section>
 
 <section id="metodologi">
  <h2>Kerangka metodologi</h2>
- <p>Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan analisis gap berbobot</b>. Bagian ini menjelaskan bagian yang mengikuti metode standar, bagian yang disesuaikan, dan bagian tambahan di luar kedua metode, agar dapat dipertanggungjawabkan secara akademik.</p>
+ <p>Sistem ini adalah <b>model hibrida AHP–TOPSIS dengan prioritas latihan berbobot</b>. Bagian ini menjelaskan bagian yang mengikuti metode standar, bagian yang disesuaikan, dan bagian tambahan di luar kedua metode, agar dapat dipertanggungjawabkan secara akademik.</p>
  <h3>Mengikuti metode standar</h3>
  <ul>
   <li><b>AHP:</b> bobot = rata-rata baris matriks ternormalisasi (pendekatan eigenvector utama), uji konsistensi λmax, CI = (λmax − n)/(n − 1), CR = CI/RI dengan RI Saaty, valid bila CR &lt; 0,1.</li>
@@ -67,17 +67,16 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  </table>
  <h3>Bagian tambahan di luar AHP dan TOPSIS</h3>
  <ul>
-  <li><b>Konversi target:</b> skor kebutuhan 1–9 → target skill 1–10 dengan round(s/9 × 10).</li>
-  <li><b>Gap berbobot:</b> gap = max(0, target − skill); prioritas = gap × bobot AHP posisi target.</li>
-  <li><b>Kesiapan posisi:</b> 1 − Σ(prioritas) / Σ(bobot × target), dinyatakan dalam persen.</li>
+  <li><b>Prioritas berbobot:</b> kekurangan = 10 − skill; prioritas = kekurangan × bobot AHP posisi target. Tidak memakai nilai ideal posisi, sehingga semua angka berasal dari matriks pakar dan nilai skill.</li>
+  <li><b>Kesiapan posisi:</b> Σ(bobot AHP × skill) / 10, dinyatakan dalam persen (sama dengan skor pendukung dibagi 10).</li>
   <li><b>Rekomendasi training:</b> pemetaan berbasis aturan dari kriteria ke jenis latihan.</li>
  </ul>
- <p class="note">Rumusan yang disarankan untuk laporan: "Sistem pendukung keputusan penentuan posisi pemain futsal menggunakan model hibrida AHP–TOPSIS, dengan AHP untuk pembobotan kriteria per posisi berdasarkan penilaian pelatih, TOPSIS untuk pemeringkatan kecocokan, dan analisis gap berbobot untuk rekomendasi latihan."</p>
+ <p class="note">Rumusan yang disarankan untuk laporan: "Sistem pendukung keputusan penentuan posisi pemain futsal menggunakan model hibrida AHP–TOPSIS, dengan AHP untuk pembobotan kriteria per posisi berdasarkan penilaian pelatih, TOPSIS untuk pemeringkatan kecocokan, dan prioritas latihan berbobot untuk rekomendasi latihan."</p>
 </section>
 
 <section id="tabel">
  <h2>Menggunakan tabel data</h2>
- <p>Semua tabel data (daftar pemain, ranking, hasil, log, akun, kriteria, bobot, dan gap) memiliki fitur yang sama:</p>
+ <p>Semua tabel data (daftar pemain, ranking, hasil, log, akun, kriteria, bobot, dan prioritas) memiliki fitur yang sama:</p>
  <ul>
   <li><b>Mengurutkan:</b> klik judul kolom (tanda ⇅). Klik sekali untuk urutan naik (▲), klik lagi untuk urutan turun (▼). Angka diurutkan sebagai angka, teks sesuai abjad.</li>
   <li><b>Mencari:</b> ketik di kotak <i>Cari di semua kolom…</i>. Baris yang mengandung kata itu di kolom mana pun akan ditampilkan.</li>
@@ -121,7 +120,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <ul>
   <li><b>Kartu angka:</b> jumlah pemain aktif, pemain di arsip, kriteria, dan hasil tersimpan.</li>
   <li><b>Tabel kecocokan posisi:</b> nilai Cᵢ setiap pemain untuk semua posisi. Angka tebal adalah nilai tertinggi. Label <span class="badge bg-success">hijau</span> berarti rekomendasi sama dengan posisi terdaftar atau alternatif pemain; <span class="badge bg-warning text-dark">kuning</span> berarti sistem menyarankan posisi lain.</li>
-  <li><b>Konsistensi AHP:</b> nilai CR tiap posisi. Jika ada yang merah, revisi skor kebutuhan di halaman Kriteria.</li>
+  <li><b>Konsistensi AHP:</b> nilai CR tiap posisi. Jika ada yang merah, minta pakar mengoreksi matriks di Perhitungan AHP.</li>
   <li><b>Aktivitas terbaru:</b> 8 log terakhir.</li>
  </ul>
  <p><b>Cara pakai:</b> klik kode pemain untuk membuka analisisnya. Tombol <b>CSV</b> dan <b>Excel</b> mengunduh tabel kecocokan (Excel juga berisi bobot AHP dan skill pemain).</p>
@@ -158,13 +157,13 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <h2>Analisis Pemain {% if not coach %}(Hasil Saya){% endif %}</h2>
  <p><b>Fungsi:</b> menampilkan hasil keputusan untuk satu pemain.</p>
  <ul>
-  <li><b>Posisi diinginkan</b> (kanan atas): pilih posisi target. Gap dan rekomendasi akan dihitung ulang terhadap posisi ini.</li>
+  <li><b>Posisi diinginkan</b> (kanan atas): pilih posisi target. Prioritas dan rekomendasi akan dihitung ulang terhadap posisi ini.</li>
   <li><b>Posisi paling sesuai:</b> posisi dengan Cᵢ tertinggi, ditambah persentase <b>kesiapan</b> untuk posisi target.</li>
   <li><b>Tabel ranking:</b> hasil TOPSIS pemain ini dengan alternatif = semua posisi: D⁺ (jarak ke solusi ideal terbaik), D⁻ (jarak ke solusi terburuk), dan Cᵢ.</li>
   <li><b>Perhitungan TOPSIS posisi:</b> klik <b>Tampilkan / sembunyikan</b> untuk melihat langkah lengkapnya (bisa dibuka pemain juga).</li>
-  <li><b>Radar skill:</b> garis hijau = skill saat ini, garis oranye putus-putus = target posisi. Area di dalam garis oranye menunjukkan kekurangan.</li>
-  <li><b>Gap skill &amp; prioritas:</b> diurutkan dari skor prioritas terbesar. Status <i>perlu upgrade</i> berarti skill di bawah target.</li>
-  <li><b>Rekomendasi training:</b> latihan untuk setiap skill yang kurang. Tiga teratas ditandai <span class="badge bg-danger">mendesak</span>.</li>
+  <li><b>Radar skill:</b> garis hijau = skill saat ini, garis oranye putus-putus = kepentingan kriteria posisi target (bobot AHP diskalakan 0–10). Skill rendah pada kriteria yang penting adalah prioritas latihan.</li>
+  <li><b>Prioritas peningkatan skill:</b> kekurangan = 10 − skill, skor prioritas = kekurangan × bobot AHP posisi diinginkan, diurutkan dari terbesar. Status <i>direkomendasikan</i> menandai 5 kriteria teratas.</li>
+  <li><b>Rekomendasi training:</b> latihan untuk 5 kriteria prioritas teratas. Tiga teratas ditandai <span class="badge bg-danger">mendesak</span>.</li>
   <li><b>Riwayat hasil tersimpan:</b> snapshot hasil yang pernah disimpan pelatih.</li>
  </ul>
  <p><b>Tombol:</b> <b>Export CSV / Excel</b> mengunduh hasil analisis.
@@ -178,8 +177,8 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <p><b>Fungsi:</b> mengelola daftar posisi yang menjadi alternatif TOPSIS dan memiliki bobot AHP sendiri.</p>
  <ul>
   <li><b>Ubah:</b> edit nama atau deskripsi di baris posisi, lalu klik <b>Simpan</b>.</li>
-  <li><b>Tambah:</b> isi nama dan deskripsi di form bawah. Posisi baru mendapat skor kebutuhan 5 untuk semua kriteria; atur skornya di Kriteria &amp; Skor Kebutuhan, lalu periksa matriks AHP-nya.</li>
-  <li><b>Hapus:</b> hanya bisa jika posisi tidak dipakai sebagai posisi utama/diinginkan pemain (termasuk arsip) dan tidak tercatat di hasil tersimpan. Minimal 2 posisi harus tersisa. Skor kebutuhan dan matriks AHP posisi itu ikut terhapus, dan posisi tersebut dihapus dari daftar posisi alternatif pemain.</li>
+  <li><b>Tambah:</b> isi nama dan deskripsi di form bawah. Posisi baru mendapat matriks kepentingan kosong (semua = 1); minta pakar mengisi matriks AHP-nya.</li>
+  <li><b>Hapus:</b> hanya bisa jika posisi tidak dipakai sebagai posisi utama/diinginkan pemain (termasuk arsip) dan tidak tercatat di hasil tersimpan. Minimal 2 posisi harus tersisa. Matriks AHP posisi itu ikut terhapus, dan posisi tersebut dihapus dari daftar posisi alternatif pemain.</li>
   <li>Kolom <b>Matriks AHP</b>, <b>CR</b>, dan <b>Skill terpenting</b> memberi ringkasan bobot tiap posisi; klik label matriks untuk membuka perhitungannya.</li>
  </ul>
 </section>
@@ -199,18 +198,14 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
 
 <section id="criteria_view">
  <h2>Kriteria <span class="badge bg-success role-tag">pelatih</span></h2>
- {% if coach %}<p class="small text-muted">Menu: <b>Data Master</b> → Kriteria &amp; Skor Kebutuhan.</p>{% endif %}
- <p><b>Fungsi:</b> mengelola kriteria (skill), teks rekomendasi training, dan skor kebutuhan per posisi yang menjadi dasar AHP.</p>
+ {% if coach %}<p class="small text-muted">Menu: <b>Data Master</b> → Kriteria.</p>{% endif %}
+ <p><b>Fungsi:</b> mengelola kriteria (skill yang dinilai pada pemain) beserta daftar latihannya.</p>
  <ul>
-  <li><b>Ubah:</b> edit nama atau skor kebutuhan (1–9) di baris kriteria, lalu klik <b>Simpan</b> di baris itu. Kolom <b>Latihan</b> menampilkan daftar latihan kriteria itu; klik <i>kelola</i> untuk mengubahnya di Rekomendasi Training.</li>
-  <li><b>Tambah:</b> isi form di bawah tabel. Skill semua pemain untuk kriteria baru otomatis diisi 5; perbarui lewat form pemain.</li>
+  <li><b>Ubah:</b> edit nama di baris kriteria, lalu klik <b>Simpan</b> di baris itu. Kolom <b>Latihan</b> menampilkan daftar latihan kriteria itu; klik <i>kelola</i> untuk mengubahnya di Rekomendasi Training.</li>
+  <li><b>Tambah:</b> isi form di bawah tabel. Skill semua pemain untuk kriteria baru otomatis diisi 5; perbarui lewat form pemain. Perbandingan kriteria baru di matriks AHP bernilai 1 sampai pakar mengoreksinya.</li>
   <li><b>Hapus:</b> klik <b>Hapus</b> dan konfirmasi. Nilai skill pemain untuk kriteria itu ikut terhapus. Minimal 3 kriteria harus tersisa.</li>
  </ul>
- <table class="table table-sm" style="max-width:520px"><thead><tr><th>Skor kebutuhan</th><th>Arti</th></tr></thead>
-  <tr><td>9 (7–9)</td><td>High: sangat dibutuhkan posisi ini</td></tr>
-  <tr><td>5 (4–6)</td><td>Medium: cukup dibutuhkan</td></tr>
-  <tr><td>1 (1–3)</td><td>Low: tidak terlalu dibutuhkan</td></tr></table>
- <p class="note">Setelah mengubah skor, periksa nilai CR di halaman Perhitungan AHP.</p>
+ <p class="note">Setelah menambah atau menghapus kriteria, periksa matriks dan nilai CR di halaman Perhitungan AHP.</p>
 </section>
 {% endif %}
 
@@ -223,7 +218,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
   <li><b>Tab posisi:</b> pilih Goalkeeper, Fixo/Anchor, Ala/Flank, atau Pivot.</li>
   <li><b>Sumber matriks:</b> label <span class="badge bg-success">Penilaian pakar</span>, <span class="badge bg-warning text-dark">Contoh, belum diisi pakar</span>, atau <span class="badge bg-danger">Belum diisi</span> menunjukkan asal matriks posisi ini.{% if coach %} Klik <b>Isi/Koreksi matriks pakar</b> untuk mengisi atau memperbaikinya.{% endif %}</li>
   <li><b>Rumus &amp; contoh perhitungan:</b> klik <b>Tampilkan</b> untuk melihat 8 langkah dengan angka nyata. Pilih <i>Kriteria i</i> dan <i>Kriteria j</i> untuk contoh pasangan lain. Klik <b>Sembunyikan</b> untuk menutup.</li>
-  <li><b>Bobot:</b> kode, kriteria, bobot, persentase, dan peringkat tiap kriteria (vektor prioritas AHP), beserta λmax, CI, RI, CR, dan status konsistensi. Skor kebutuhan tidak ditampilkan di sini karena hanya dipakai sebagai target analisis gap.</li>
+  <li><b>Bobot:</b> kode, kriteria, bobot, persentase, dan peringkat tiap kriteria (vektor prioritas AHP), beserta λmax, CI, RI, CR, dan status konsistensi.</li>
   <li><b>Grafik perbandingan bobot</b> antar posisi.</li>
   <li><b>Matriks perbandingan berpasangan, matriks ternormalisasi, dan uji konsistensi.</b></li>
  </ul>
@@ -240,7 +235,7 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
   <li>Untuk setiap sel di atas diagonal, jawab: seberapa penting kriteria <b>baris</b> dibanding kriteria <b>kolom</b>? Pilih 1–9 jika kriteria baris lebih penting, atau 1/2–1/9 jika kriteria kolom yang lebih penting. Sel di bawah diagonal terisi otomatis.</li>
   <li>Panel <b>Hasil langsung</b> menampilkan bobot dan CR setiap kali nilai diubah.</li>
   <li>Klik <b>Cek Konsistensi</b>. Jika CR ≥ 0,1, matriks <b>belum bisa disimpan</b>: muncul alasan dan tabel petunjuk berisi pasangan yang paling bertentangan beserta nilai saran, dan selnya ditandai merah. Perbaiki pasangan yang menurut Anda keliru, lalu cek lagi.</li>
-  <li>Jika CR &lt; 0,1, tombol berubah menjadi <b>SIMPAN</b>. Klik untuk menyimpan. Bobot dan CR dihitung ulang, dan semua perhitungan (TOPSIS, skor, gap, rekomendasi, export) langsung memakai bobot baru.</li>
+  <li>Jika CR &lt; 0,1, tombol berubah menjadi <b>SIMPAN</b>. Klik untuk menyimpan. Bobot dan CR dihitung ulang, dan semua perhitungan (TOPSIS, skor, prioritas, rekomendasi, export) langsung memakai bobot baru.</li>
  </ol>
  <p><b>Cukup sekali:</b> matriks diisi pakar satu kali di awal untuk setiap posisi. Menambah pemain baru tidak mengubah matriks; pemain hanya diisi nilai skill 1–10. <b>Kosongkan</b> mengisi semua sel dengan 1 bila pakar ingin memulai dari awal.</p>
  <p class="note">Matriks yang tidak konsisten selalu ditolak, juga oleh server, sehingga bobot lama tetap dipakai sampai matriks baru konsisten. Setiap perubahan sel mengharuskan cek ulang. Untuk mencari pertentangan: cari perbandingan yang saling bertentangan, misalnya A lebih penting dari B, B lebih penting dari C, tetapi C dinilai lebih penting dari A. Jika kriteria baru ditambahkan, pasangan yang belum dinilai bernilai 1 sampai pakar melengkapinya.</p>
@@ -306,11 +301,11 @@ Tombol <span class="badge bg-light text-dark border">? Panduan</span> di bilah a
  <h3>Mengapa posisi terbaik berbeda dari posisi terdaftar?</h3>
  <p>Rekomendasi murni berdasarkan skill saat ini. Perbedaan ini justru informasi bagi pelatih, misalnya pemain Anchor dengan shooting dan strength tinggi yang lebih cocok sebagai Pivot.</p>
  <h3>Mengapa nilai Cᵢ berubah padahal skill pemain tidak diubah?</h3>
- <p>TOPSIS membandingkan pemain dengan pemain aktif lain. Menambah, mengubah, atau mengarsipkan pemain lain bisa menggeser nilai Cᵢ.</p>
+ <p>TOPSIS per pemain tidak bergantung pada pemain lain. Cᵢ berubah bila bobot AHP berubah, yaitu ketika pakar mengoreksi matriks atau kriteria ditambah/dihapus.</p>
  <h3>Apa arti kesiapan posisi target?</h3>
- <p>Persentase seberapa dekat skill pemain dengan target posisi, dengan bobot AHP. 100% berarti semua skill sudah memenuhi target.</p>
+ <p>Kesiapan = Σ(bobot AHP posisi target × skill) / 10. Nilainya 100% bila semua skill bernilai 10; skill pada kriteria yang lebih penting berpengaruh lebih besar.</p>
  <h3>Bagaimana jika CR lebih dari 0,1?</h3>
- <p>Matriks dianggap tidak konsisten. Kurangi skor ekstrem yang bertentangan di halaman Kriteria, lalu cek ulang.</p>
+ <p>Matriks dianggap tidak konsisten. Ubah pasangan yang ditandai merah pada form matriks pakar, lalu cek ulang.</p>
 </section>
  </div>
 </div>

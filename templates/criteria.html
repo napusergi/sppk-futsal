@@ -1,16 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Kriteria &amp; Skor Kebutuhan Posisi</h1>
-<p class="note">Skor kebutuhan 1–9 per posisi (High = 9, Medium = 5, Low = 1; nilai antara 2–8 boleh dipakai). Skor ini hanya dipakai sebagai <b>target analisis gap</b>; bobot AHP berasal dari matriks kepentingan yang diisi pakar di Analisis Data → Perhitungan AHP.</p>
+<h1>Kriteria</h1>
+<p class="note">Kriteria adalah skill yang dinilai pada setiap pemain (skala 1–10). Bobot kepentingan setiap kriteria per posisi berasal dari matriks kepentingan yang diisi pakar di Analisis Data → Perhitungan AHP.</p>
 <div class="card mb-4"><div class="card-body table-responsive">
 <table class="table table-sm align-middle dt" id="tbl-kriteria" data-per-page="25">
- <thead><tr><th>Kriteria</th><th>Latihan ({{ criteria|map(attribute='trainings')|map('length')|sum }})</th>{% for p in POSITIONS %}<th class="num">{{ p }}</th>{% endfor %}<th></th></tr></thead>
+ <thead><tr><th>Kriteria</th><th>Latihan ({{ criteria|map(attribute='trainings')|map('length')|sum }})</th><th></th></tr></thead>
  {% for c in criteria %}{% set i = loop.index0 %}<tr>
   <td><form id="f{{ c.id }}" method="post"><input type="hidden" name="action" value="edit"><input type="hidden" name="id" value="{{ c.id }}"></form>
    <input form="f{{ c.id }}" class="form-control form-control-sm" name="name" id="name{{ c.id }}" value="{{ c.name }}" required></td>
   <td class="small" style="min-width:240px;white-space:normal">{% for t in c.trainings %}{{ t.name }}{{ ', ' if not loop.last }}{% else %}<span class="text-danger">Belum ada latihan</span>{% endfor %}
    <a class="ms-1" href="{{ url_for('trainings_view', c=c.id) }}">kelola</a></td>
-  {% for p in POSITIONS %}<td><input form="f{{ c.id }}" class="form-control form-control-sm" style="width:64px" type="number" min="1" max="9" name="pos_{{ loop.index0 }}" id="s{{ c.id }}_{{ loop.index0 }}" value="{{ profiles[loop.index0][i] }}"></td>{% endfor %}
   <td class="text-nowrap"><button form="f{{ c.id }}" class="btn btn-sm btn-court">Simpan</button>
    <form method="post" class="d-inline" onsubmit="return confirm('Hapus kriteria {{ c.name }}? Nilai skill pemain untuk kriteria ini ikut terhapus.')">
     <input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ c.id }}"><button class="btn btn-sm btn-outline-danger">Hapus</button></form></td>
@@ -21,8 +20,7 @@
  <form method="post" class="row g-2 align-items-end"><input type="hidden" name="action" value="add">
   <div class="col-md-3"><label class="form-label" for="nname">Nama</label><input class="form-control" id="nname" name="name" required></div>
   <div class="col-md-4"><label class="form-label" for="ntr">Latihan pertama</label><input class="form-control" id="ntr" name="training"></div>
-  {% for p in POSITIONS %}<div class="col-6 col-md-1"><label class="form-label small" for="np{{ loop.index0 }}">{{ p }}</label><input class="form-control" type="number" min="1" max="9" value="5" id="np{{ loop.index0 }}" name="pos_{{ loop.index0 }}"></div>{% endfor %}
-  <div class="col-md-1"><button class="btn btn-court w-100">Tambah</button></div>
+  <div class="col-md-2"><button class="btn btn-court w-100">Tambah</button></div>
  </form>
 </div></div>
 {% endblock %}

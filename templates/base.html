@@ -65,7 +65,7 @@ th.dt-sortable:focus-visible{outline:2px solid var(--ball);outline-offset:-2px}
     <li class="nav-item dropdown"><a class="nav-link dropdown-toggle{{ ' active' if on.v }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ label }}<span class="caret" aria-hidden="true">▾</span></a>
      <ul class="dropdown-menu">{% for text, endpoint, also in items %}{% set a = cur_ep == endpoint or cur_ep in also %}
       <li><a class="dropdown-item{{ ' active' if a }}" {{ 'aria-current=page' if a }} href="{{ url_for(endpoint) }}">{{ text }}</a></li>{% endfor %}</ul></li>{% endmacro %}
-    {{ dd('Data Master', [('Data Pemain', 'players', ['player_new', 'player_edit', 'player_detail']), ('Posisi', 'positions_view', []), ('Kriteria & Skor Kebutuhan', 'criteria_view', []), ('Rekomendasi Training', 'trainings_view', [])]) }}
+    {{ dd('Data Master', [('Data Pemain', 'players', ['player_new', 'player_edit', 'player_detail']), ('Posisi', 'positions_view', []), ('Kriteria', 'criteria_view', []), ('Rekomendasi Training', 'trainings_view', [])]) }}
     {{ dd('Analisis Data', [('Perhitungan AHP', 'ahp_view', ['ahp_matrix']), ('Perhitungan TOPSIS', 'topsis_view', []), ('Riwayat Hasil', 'results', ['result_detail'])]) }}
     {{ nl('Log', 'logs') }}
     {% if is_super %}{% call nl('Akun', 'users') %}{% if pending_count %} <span class="badge bg-warning text-dark">{{ pending_count }}</span>{% endif %}{% endcall %}{% endif %}
